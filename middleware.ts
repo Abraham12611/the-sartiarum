@@ -2,7 +2,12 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  try {
+    return await updateSession(request)
+  } catch {
+    // Last-resort catch — never let middleware crash the entire app.
+    return Response.next()
+  }
 }
 
 export const config = {
