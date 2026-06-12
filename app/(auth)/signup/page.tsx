@@ -35,49 +35,42 @@ export default function SignupPage() {
     setLoading(true)
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name } },
-      })
+      const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
       if (error) { setError(error.message); return }
       router.push('/app')
       router.refresh()
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   async function handleGoogleSignup() {
     setGoogleLoading(true)
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback` } })
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#F9F6EE', fontFamily: 'Inter, sans-serif' }}>
-      {/* Background doodle */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "url('/signup-bg.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'right top',
-          backgroundSize: '52%',
-        }}
-        aria-hidden
-      />
+    <div
+      className="relative min-h-screen flex flex-col overflow-hidden"
+      style={{ background: '#F9F6EE', fontFamily: 'Inter, sans-serif' }}
+    >
+      {/* Background doodle — using next/image so it goes through Next.js serving */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <Image
+          src="/signup-bg.png"
+          alt=""
+          fill
+          priority
+          className="object-contain object-right-top"
+          style={{ opacity: 0.95 }}
+        />
+      </div>
 
       {/* Top nav */}
       <nav className="relative z-10 flex items-center justify-between px-10 py-5">
-        <Link href="/" className="flex items-center">
+        <Link href="/">
           <Image src="/logo.png" alt="Sartiarum" width={130} height={28} style={{ objectFit: 'contain' }} priority />
         </Link>
         <div className="flex items-center gap-7" style={{ fontSize: 14, fontWeight: 500, color: '#4F5963' }}>
-          <Link href="/pricing" className="hover:text-[#141516] transition-colors">Pricing</Link>
           <Link href="/" className="hover:text-[#141516] transition-colors">Back to home</Link>
           <span
             className="flex items-center gap-1.5 px-3 py-1 rounded-full"
@@ -91,47 +84,22 @@ export default function SignupPage() {
 
       {/* Card */}
       <div className="relative z-10 flex flex-1 items-center justify-center px-6 pb-12">
-        <div
-          className="w-full"
-          style={{
-            maxWidth: 400,
-            background: '#fff',
-            borderRadius: 20,
-            boxShadow: '0 8px 48px rgba(0,0,0,0.10)',
-            padding: '32px 32px',
-          }}
-        >
+        <div style={{ width: '100%', maxWidth: 400, background: '#fff', borderRadius: 20, boxShadow: '0 8px 48px rgba(0,0,0,0.10)', padding: '32px 32px' }}>
           <div className="flex justify-center mb-4">
             <Image src="/logo.png" alt="" width={30} height={30} style={{ objectFit: 'contain' }} />
           </div>
-
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#141516', textAlign: 'center', marginBottom: 6, letterSpacing: '-0.03em' }}>
-            Create your account
-          </h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#141516', textAlign: 'center', marginBottom: 6, letterSpacing: '-0.03em' }}>Create your account</h1>
           <p style={{ fontSize: 13.5, color: '#4F5963', textAlign: 'center', lineHeight: 1.55, marginBottom: 22 }}>
             Start writing, researching, and improving with Sartiarum.
           </p>
 
-          {/* Google */}
           <button
             onClick={handleGoogleSignup}
             disabled={googleLoading}
             className="w-full flex items-center justify-center gap-3 transition-colors"
-            style={{
-              height: 44,
-              borderRadius: 12,
-              border: '1.5px solid #e1dbd2',
-              background: '#fff',
-              fontSize: 14,
-              fontWeight: 600,
-              color: '#141516',
-              cursor: 'pointer',
-              marginBottom: 18,
-              opacity: googleLoading ? 0.6 : 1,
-            }}
+            style={{ height: 44, borderRadius: 12, border: '1.5px solid #e1dbd2', background: '#fff', fontSize: 14, fontWeight: 600, color: '#141516', cursor: 'pointer', marginBottom: 18, opacity: googleLoading ? 0.6 : 1 }}
           >
-            <GoogleIcon />
-            {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+            <GoogleIcon />{googleLoading ? 'Redirecting…' : 'Continue with Google'}
           </button>
 
           <div className="flex items-center gap-3" style={{ marginBottom: 18 }}>
@@ -141,71 +109,38 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSignup}>
-            {error && (
-              <div style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-                {error}
-              </div>
-            )}
-
+            {error && <div style={{ fontSize: 13, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>{error}</div>}
             <div style={{ marginBottom: 10 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4F5963', marginBottom: 5 }}>Full name</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Enter your full name"
+              <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Enter your full name"
                 style={{ width: '100%', height: 44, borderRadius: 12, border: '1.5px solid #e1dbd2', padding: '0 16px', fontSize: 14, color: '#141516', outline: 'none', boxSizing: 'border-box', fontFamily: 'Inter, sans-serif' }}
                 onFocus={e => { e.currentTarget.style.borderColor = '#4F6F3D' }}
-                onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }}
-              />
+                onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }} />
             </div>
-
             <div style={{ marginBottom: 10 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4F5963', marginBottom: 5 }}>Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Enter your email"
+              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email"
                 style={{ width: '100%', height: 44, borderRadius: 12, border: '1.5px solid #e1dbd2', padding: '0 16px', fontSize: 14, color: '#141516', outline: 'none', boxSizing: 'border-box', fontFamily: 'Inter, sans-serif' }}
                 onFocus={e => { e.currentTarget.style.borderColor = '#4F6F3D' }}
-                onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }}
-              />
+                onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }} />
             </div>
-
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4F5963', marginBottom: 5 }}>Password</label>
               <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Create a password"
+                <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password"
                   style={{ width: '100%', height: 44, borderRadius: 12, border: '1.5px solid #e1dbd2', padding: '0 44px 0 16px', fontSize: 14, color: '#141516', outline: 'none', boxSizing: 'border-box', fontFamily: 'Inter, sans-serif' }}
                   onFocus={e => { e.currentTarget.style.borderColor = '#4F6F3D' }}
-                  onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9AA4A0', display: 'flex', alignItems: 'center' }}
-                >
+                  onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }} />
+                <button type="button" onClick={() => setShowPassword(p => !p)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9AA4A0', display: 'flex', alignItems: 'center' }}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{ width: '100%', height: 44, borderRadius: 12, background: loading ? '#7a9e6a' : '#4F6F3D', color: '#fff', fontSize: 15, fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 14px rgba(79,111,61,0.28)', fontFamily: 'Inter, sans-serif' }}
-            >
+            <button type="submit" disabled={loading}
+              style={{ width: '100%', height: 44, borderRadius: 12, background: loading ? '#7a9e6a' : '#4F6F3D', color: '#fff', fontSize: 15, fontWeight: 600, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 4px 14px rgba(79,111,61,0.28)', fontFamily: 'Inter, sans-serif' }}>
               {loading ? 'Creating account…' : 'Create account'}
             </button>
-
             <p style={{ fontSize: 12, color: '#9AA4A0', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
               By continuing, you agree to our{' '}
               <Link href="/terms" style={{ color: '#4F6F3D', textDecoration: 'none' }}>Terms</Link>
