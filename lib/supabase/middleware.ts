@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const AUTH_PATHS = ['/login', '/signup', '/forgot-password']
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -23,10 +25,14 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Unauthenticated trying to access protected app routes
   if (!user && request.nextUrl.pathname.startsWith('/app')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // Authenticated user visiting auth pages — send them to the app
+  if (user && AUTH_PATHS.includes(request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL('/app', request.url))
   }
 
   return response
