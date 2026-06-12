@@ -4,8 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password']
 
 export async function updateSession(request: NextRequest) {
-  // If Supabase env vars are not yet configured (e.g. during initial
-  // Vercel deployment), pass the request through rather than crashing.
+  // Pass through gracefully when Supabase env vars are not yet configured.
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -38,14 +37,16 @@ export async function updateSession(request: NextRequest) {
     user = data.user
   } catch {
     // Network error or invalid keys — let the request through;
-    // page-level auth checks will catch unauthenticated users.
+    // page-level auth checks will handle unauthenticated users.
     return response
   }
 
+  // Unauthenticated users cannot access /app/*
   if (!user && request.nextUrl.pathname.startsWith('/app')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Authenticated users are sent away from auth pages
   if (user && AUTH_PATHS.includes(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL('/app', request.url))
   }

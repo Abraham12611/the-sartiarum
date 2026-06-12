@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
   try {
     return await updateSession(request)
   } catch {
-    // Last-resort catch — never let middleware crash the entire app.
+    // Last-resort catch — never let a middleware crash return 500 to visitors.
     return Response.next()
   }
 }
