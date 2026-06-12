@@ -4,11 +4,19 @@ import { NextResponse, type NextRequest } from 'next/server'
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password']
 
 export async function updateSession(request: NextRequest) {
+  // Pass through gracefully when Supabase env vars are not yet configured.
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return NextResponse.next({ request })
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() { return request.cookies.getAll() },
@@ -23,14 +31,18 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    return response
+  }
 
-  // Unauthenticated trying to access protected app routes
   if (!user && request.nextUrl.pathname.startsWith('/app')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Authenticated user visiting auth pages — send them to the app
   if (user && AUTH_PATHS.includes(request.nextUrl.pathname)) {
     return NextResponse.redirect(new URL('/app', request.url))
   }

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react'
+import { useEffect, useRef } from 'react'
+import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
@@ -11,7 +11,7 @@ import FocusExtension from '@tiptap/extension-focus'
 import Typography from '@tiptap/extension-typography'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Toolbar } from './Toolbar'
-import { BubbleMenuBar } from './BubbleMenuBar'
+import { BubbleMenuWrapper } from './BubbleMenuWrapper'
 import { SlashMenu } from './SlashMenu'
 
 interface EditorProps {
@@ -22,7 +22,7 @@ interface EditorProps {
 }
 
 export function Editor({ content, focusMode, onUpdate, onSaveNow }: EditorProps) {
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const editor = useEditor({
     extensions: [
@@ -36,17 +36,12 @@ export function Editor({ content, focusMode, onUpdate, onSaveNow }: EditorProps)
       Placeholder.configure({ placeholder: 'Start writing… or describe what you want in the Compose panel.' }),
     ],
     content: (content && Object.keys(content as object).length > 0 ? content : undefined) as any,
-    editorProps: {
-      attributes: { class: 'tiptap-editor', style: 'height: 100%; min-height: 400px;' },
-    },
     onUpdate: ({ editor }) => {
-      const json = editor.getJSON()
+      const json  = editor.getJSON()
       const words = editor.storage.characterCount.words()
       onUpdate(json, words)
-
-      // Auto-save debounce 10s
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-      saveTimeoutRef.current = setTimeout(() => { onSaveNow() }, 10000)
+      saveTimeoutRef.current = setTimeout(() => onSaveNow(), 10000)
     },
     onBlur: () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
@@ -59,53 +54,20 @@ export function Editor({ content, focusMode, onUpdate, onSaveNow }: EditorProps)
   }, [])
 
   const wordCount = editor?.storage.characterCount.words() ?? 0
-  const readTime = Math.max(1, Math.ceil(wordCount / 200))
+  const readTime  = Math.max(1, Math.ceil(wordCount / 200))
 
   return (
     <div
+      className={`tiptap-editor-wrap ${focusMode ? 'focus-mode' : ''}`}
       style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative' }}
-      className={focusMode ? 'focus-mode' : ''}
     >
-      {/* Toolbar */}
       <Toolbar editor={editor} />
-
-      {/* Bubble menu on selection */}
-      {editor && (
-        <BubbleMenu
-          editor={editor}
-          tippyOptions={{ duration: 100, placement: 'top-start' }}
-          shouldShow={({ editor, view, state, from, to }) => {
-            const { doc, selection } = state
-            const { empty } = selection
-            return !empty && view.hasFocus()
-          }}
-        >
-          <BubbleMenuBar editor={editor} />
-        </BubbleMenu>
-      )}
-
-      {/* Slash menu */}
+      {editor && <BubbleMenuWrapper editor={editor} />}
       {editor && <SlashMenu editor={editor} />}
-
-      {/* Editor content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="tiptap-editor" style={{ flex: 1, overflowY: 'auto' }}>
         <EditorContent editor={editor} style={{ height: '100%' }} />
       </div>
-
-      {/* Footer */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 64px',
-          borderTop: '1px solid #ede8e1',
-          fontSize: 12,
-          color: '#9AA4A0',
-          background: '#fff',
-          flexShrink: 0,
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', padding: '10px 64px', borderTop: '1px solid #ede8e1', fontSize: 12, color: '#9AA4A0', background: '#fff', flexShrink: 0 }}>
         <span>{wordCount.toLocaleString()} words · {readTime} min read</span>
       </div>
     </div>
