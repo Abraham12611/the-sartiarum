@@ -2,6 +2,9 @@
   "name": "sartiarum",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +13,6 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.204",
-    "@base-ui/react": "^1.5.0",
     "@openrouter/ai-sdk-provider": "^2.9.1",
     "@sentry/nextjs": "^10.57.0",
     "@supabase/ssr": "^0.12.0",
@@ -32,16 +34,14 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.2",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^0.511.0",
     "next": "16.2.9",
     "postgres": "^3.4.9",
     "posthog-js": "^1.386.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "shadcn": "^4.11.0",
     "stripe": "^22.2.0",
     "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
