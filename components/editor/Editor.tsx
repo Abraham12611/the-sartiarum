@@ -22,7 +22,7 @@ interface EditorProps {
 }
 
 export function Editor({ content, focusMode, onUpdate, onSaveNow }: EditorProps) {
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const editor = useEditor({
     extensions: [
@@ -62,16 +62,11 @@ export function Editor({ content, focusMode, onUpdate, onSaveNow }: EditorProps)
       style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden', position: 'relative' }}
     >
       <Toolbar editor={editor} />
-
-      {/* Custom floating bubble menu — BubbleMenu removed from @tiptap/react v3 */}
       {editor && <BubbleMenuWrapper editor={editor} />}
-
       {editor && <SlashMenu editor={editor} />}
-
       <div className="tiptap-editor" style={{ flex: 1, overflowY: 'auto' }}>
         <EditorContent editor={editor} style={{ height: '100%' }} />
       </div>
-
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 64px', borderTop: '1px solid #ede8e1', fontSize: 12, color: '#9AA4A0', background: '#fff', flexShrink: 0 }}>
         <span>{wordCount.toLocaleString()} words · {readTime} min read</span>
       </div>
