@@ -13,7 +13,7 @@ import { signOut } from '@/lib/actions/auth'
 type Space = { id: string; name: string; sortOrder: number }
 type Board = { id: string; name: string; icon: string | null; color: string | null; isPinned: boolean; sortOrder: number; spaceId: string | null }
 type Profile = { displayName: string | null; avatarUrl: string | null } | null
-type Subscription = { status: string; trialEndsAt: Date | null } | null
+type Subscription = { status: string; trialEndsAt: string | null } | null
 
 interface SidebarProps {
   spaces: Space[]
@@ -37,8 +37,9 @@ export function Sidebar({ spaces, boards, profile, subscription, aiUsageCount }:
 
   const pinnedBoards = boards.filter(b => b.isPinned)
   const isTrialing = subscription?.status === 'trialing'
-  const trialDaysLeft = subscription?.trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86400000))
+  const trialEndsAtMs = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt).getTime() : null
+  const trialDaysLeft = trialEndsAtMs
+    ? Math.max(0, Math.ceil((trialEndsAtMs - Date.now()) / 86400000))
     : 0
 
   function toggleSpace(id: string) {

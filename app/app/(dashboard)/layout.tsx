@@ -22,14 +22,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ),
   ])
 
+  const safeAiUsageCount = Number(usageCount[0]?.value ?? 0)
+  const subscription = subData[0]
+    ? {
+        ...subData[0],
+        trialEndsAt: subData[0].trialEndsAt ? new Date(subData[0].trialEndsAt).toISOString() : null,
+      }
+    : null
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
       <Sidebar
         spaces={spacesData}
         boards={boardsData}
         profile={profileData[0] ?? null}
-        subscription={subData[0] ?? null}
-        aiUsageCount={usageCount[0]?.value ?? 0}
+        subscription={subscription}
+        aiUsageCount={safeAiUsageCount}
         userId={user.id}
       />
       <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>{children}</main>
