@@ -51,8 +51,10 @@ export default function LoginPage() {
     })
   }
 
+  const showRightArt = true
+
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#F9F6EE', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#F9F6EE', fontFamily: 'Inter, sans-serif' }}>
       {/* Right-side decorative component */}
       <Image
         src="/login-component-2.png"
@@ -60,32 +62,31 @@ export default function LoginPage() {
         width={980}
         height={1080}
         priority
-        className="hidden lg:block"
         aria-hidden
         style={{
           position: 'absolute',
           right: 0,
           top: 0,
           height: '100%',
-          width: '48%',
+          width: showRightArt ? '48%' : 0,
           objectFit: 'contain',
           objectPosition: 'right center',
           pointerEvents: 'none',
           zIndex: 0,
+          display: showRightArt ? 'block' : 'none',
         }}
       />
 
       {/* Top nav */}
-      <nav className="relative z-10 flex items-center justify-between px-10 py-5">
-        <Link href="/" className="flex items-center">
+      <nav style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 40px' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
           <Image src="/logo.png" alt="Sartiarum" width={130} height={28} style={{ objectFit: 'contain' }} priority />
         </Link>
-        <div className="flex items-center gap-7" style={{ fontSize: 14, fontWeight: 500, color: '#4F5963' }}>
-          <Link href="/pricing" className="hover:text-[#141516] transition-colors" style={{ color: '#4F5963', textDecoration: 'none' }}>Pricing</Link>
-          <Link href="/" className="hover:text-[#141516] transition-colors" style={{ color: '#4F5963', textDecoration: 'none' }}>Back to home</Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 14, fontWeight: 500, color: '#4F5963' }}>
+          <Link href="/pricing" style={{ color: '#4F5963', textDecoration: 'none' }}>Pricing</Link>
+          <Link href="/" style={{ color: '#4F5963', textDecoration: 'none' }}>Back to home</Link>
           <span
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full"
-            style={{ background: '#fff', border: '1px solid #e4ddd5', fontSize: 12, fontWeight: 600, color: '#4F6F3D' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 999, background: '#fff', border: '1px solid #e4ddd5', fontSize: 12, fontWeight: 600, color: '#4F6F3D' }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4F6F3D', display: 'inline-block' }} />
             Coming soon
@@ -94,10 +95,10 @@ export default function LoginPage() {
       </nav>
 
       {/* Card */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-6 pb-16">
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', padding: '0 24px 64px' }}>
         <div
-          className="w-full"
           style={{
+            width: '100%',
             maxWidth: 400,
             background: '#fff',
             borderRadius: 20,
@@ -106,7 +107,7 @@ export default function LoginPage() {
           }}
         >
           {/* Logo mark */}
-          <div className="flex justify-center mb-4">
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <Image src="/logo.png" alt="" width={30} height={30} style={{ objectFit: 'contain' }} />
           </div>
 
@@ -121,8 +122,12 @@ export default function LoginPage() {
           <button
             onClick={handleGoogleLogin}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 transition-colors"
             style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 12,
               height: 44,
               borderRadius: 12,
               border: '1.5px solid #e1dbd2',
@@ -140,7 +145,7 @@ export default function LoginPage() {
           </button>
 
           {/* Divider */}
-          <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <div style={{ flex: 1, height: 1, background: '#e8e2d9' }} />
             <span style={{ fontSize: 12, color: '#9AA4A0', fontWeight: 500 }}>or</span>
             <div style={{ flex: 1, height: 1, background: '#e8e2d9' }} />
@@ -249,7 +254,7 @@ export default function LoginPage() {
       </div>
 
       {/* Footer note */}
-      <div className="relative z-10 flex items-center justify-center gap-6 pb-6" style={{ fontSize: 12, color: '#9AA4A0' }}>
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, paddingBottom: 24, fontSize: 12, color: '#9AA4A0', flexWrap: 'wrap' }}>
         <span>🍎 Mac-first. Also coming to Web, Windows, and Linux.</span>
         <span>🔒 Your drafts stay yours.</span>
       </div>
