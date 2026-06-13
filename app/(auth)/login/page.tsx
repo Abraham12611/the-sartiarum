@@ -80,7 +80,7 @@ export default function LoginPage() {
       {/* Top nav */}
       <nav style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 40px' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-          <Image src="/logo.png" alt="Sartiarum" width={130} height={28} style={{ objectFit: 'contain' }} priority />
+          <Image src="/wordmark-logo.png" alt="Sartiarum" width={176} height={44} style={{ objectFit: 'contain' }} priority />
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 14, fontWeight: 500, color: '#4F5963' }}>
           <Link href="/pricing" style={{ color: '#4F5963', textDecoration: 'none' }}>Pricing</Link>
@@ -108,7 +108,7 @@ export default function LoginPage() {
         >
           {/* Logo mark */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <Image src="/logo.png" alt="" width={30} height={30} style={{ objectFit: 'contain' }} />
+            <Image src="/sartiatum-logo-icon.png" alt="" width={30} height={30} style={{ objectFit: 'contain' }} />
           </div>
 
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#141516', textAlign: 'center', marginBottom: 6, letterSpacing: '-0.03em' }}>
