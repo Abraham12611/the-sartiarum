@@ -53,22 +53,27 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#F9F6EE', fontFamily: 'Inter, sans-serif' }}>
-      {/* Background doodle illustration */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <img
-          src="/login-bg.png"
-          alt=""
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '52%',
-            height: '100%',
-            objectFit: 'contain',
-            objectPosition: 'right top',
-          }}
-        />
-      </div>
+      {/* Right-side decorative component */}
+      <Image
+        src="/login-component-2.png"
+        alt=""
+        width={980}
+        height={1080}
+        priority
+        className="hidden lg:block"
+        aria-hidden
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          height: '100%',
+          width: '48%',
+          objectFit: 'contain',
+          objectPosition: 'right center',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
 
       {/* Top nav */}
       <nav className="relative z-10 flex items-center justify-between px-10 py-5">
