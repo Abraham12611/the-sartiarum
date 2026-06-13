@@ -60,16 +60,21 @@ export default function SignupPage() {
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#F9F6EE', fontFamily: 'Inter, sans-serif' }}>
       {/* Background doodle */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backgroundImage: "url('/signup-bg.png')",
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'right top',
-          backgroundSize: '52%',
-        }}
-        aria-hidden
-      />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        <img
+          src="/signup-bg.png"
+          alt=""
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '52%',
+            height: '100%',
+            objectFit: 'contain',
+            objectPosition: 'right top',
+          }}
+        />
+      </div>
 
       {/* Top nav */}
       <nav className="relative z-10 flex items-center justify-between px-10 py-5">
@@ -77,8 +82,8 @@ export default function SignupPage() {
           <Image src="/logo.png" alt="Sartiarum" width={130} height={28} style={{ objectFit: 'contain' }} priority />
         </Link>
         <div className="flex items-center gap-7" style={{ fontSize: 14, fontWeight: 500, color: '#4F5963' }}>
-          <Link href="/pricing" className="hover:text-[#141516] transition-colors">Pricing</Link>
-          <Link href="/" className="hover:text-[#141516] transition-colors">Back to home</Link>
+          <Link href="/pricing" className="hover:text-[#141516] transition-colors" style={{ color: '#4F5963', textDecoration: 'none' }}>Pricing</Link>
+          <Link href="/" className="hover:text-[#141516] transition-colors" style={{ color: '#4F5963', textDecoration: 'none' }}>Back to home</Link>
           <span
             className="flex items-center gap-1.5 px-3 py-1 rounded-full"
             style={{ background: '#fff', border: '1px solid #e4ddd5', fontSize: 12, fontWeight: 600, color: '#4F6F3D' }}
