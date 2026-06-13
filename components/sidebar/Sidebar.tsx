@@ -1,17 +1,32 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import {
-  Search, Plus, ChevronDown, ChevronRight, Settings,
-  BookOpen, Calendar, LogOut, Star, Pin,
-} from 'lucide-react'
+  CaretDown,
+  CaretRight,
+  Gear,
+  GraduationCap,
+  ListMagnifyingGlass,
+  MagnifyingGlass,
+  PushPinSimple,
+  SignOut,
+} from '@phosphor-icons/react'
 import { signOut } from '@/lib/actions/auth'
+import styles from './Sidebar.module.css'
 
 type Space = { id: string; name: string; sortOrder: number }
-type Board = { id: string; name: string; icon: string | null; color: string | null; isPinned: boolean; sortOrder: number; spaceId: string | null }
+type Board = {
+  id: string
+  name: string
+  icon: string | null
+  color: string | null
+  isPinned: boolean
+  sortOrder: number
+  spaceId: string | null
+}
 type Profile = { displayName: string | null; avatarUrl: string | null } | null
 type Subscription = { status: string; trialEndsAt: string | null } | null
 
@@ -21,213 +36,212 @@ interface SidebarProps {
   profile: Profile
   subscription: Subscription
   aiUsageCount: number
-  userId: string
-}
-
-const BOARD_COLORS: Record<string, string> = {
-  blue: '#3b82f6', green: '#4F6F3D', purple: '#8b5cf6',
-  orange: '#f97316', red: '#ef4444', yellow: '#eab308',
 }
 
 export function Sidebar({ spaces, boards, profile, subscription, aiUsageCount }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
-  const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
+  const searchParams = useSearchParams()
   const [searchValue, setSearchValue] = useState('')
+  const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
 
-  const pinnedBoards = boards.filter(b => b.isPinned)
+  const activeBoardId = searchParams.get('board')
+  const pinnedBoards = boards.filter((board) => board.isPinned)
+  const boardMatchesSearch = (board: Board) =>
+    board.name.toLowerCase().includes(searchValue.trim().toLowerCase())
+
+  const filteredBoards = useMemo(() => {
+    if (!searchValue.trim()) return boards
+    return boards.filter(boardMatchesSearch)
+  }, [boards, searchValue])
+
   const isTrialing = subscription?.status === 'trialing'
   const trialEndsAtMs = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt).getTime() : null
   const trialDaysLeft = trialEndsAtMs
     ? Math.max(0, Math.ceil((trialEndsAtMs - Date.now()) / 86400000))
     : 0
 
-  function toggleSpace(id: string) {
-    setCollapsedSpaces(prev => {
+  function toggleSpace(spaceId: string) {
+    setCollapsedSpaces((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(spaceId)) next.delete(spaceId)
+      else next.add(spaceId)
       return next
     })
   }
 
   function getBoardsForSpace(spaceId: string) {
-    return boards.filter(b => b.spaceId === spaceId)
+    return filteredBoards.filter((board) => board.spaceId === spaceId)
   }
-
-  const navItemStyle = (active: boolean): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 9,
-    padding: '7px 12px',
-    borderRadius: 9,
-    fontSize: 13.5,
-    fontWeight: active ? 600 : 400,
-    color: active ? '#141516' : '#4F5963',
-    background: active ? '#f0ede8' : 'transparent',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    width: '100%',
-    border: 'none',
-    textAlign: 'left',
-    transition: 'background 0.12s',
-  })
 
   async function handleSignOut() {
     await signOut()
   }
 
+  function createInitials(name: string | null | undefined) {
+    if (!name?.trim()) return 'S'
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('')
+  }
+
   return (
-    <aside
-      style={{
-        width: 228,
-        flexShrink: 0,
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRight: '1px solid #ede8e1',
-        background: '#faf7f2',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Logo */}
-      <div style={{ padding: '16px 16px 8px', borderBottom: '1px solid #ede8e1' }}>
-        <Link href="/app" style={{ display: 'flex', alignItems: 'center' }}>
-          <Image src="/logo.png" alt="Sartiarum" width={110} height={24} style={{ objectFit: 'contain' }} priority />
+    <aside className={styles.sidebar}>
+      <div className={styles.headerArea}>
+        <div className={styles.windowControls} aria-hidden>
+          <span className={`${styles.dot} ${styles.dotRed}`} />
+          <span className={`${styles.dot} ${styles.dotYellow}`} />
+          <span className={`${styles.dot} ${styles.dotGreen}`} />
+        </div>
+        <Link href="/app" className={styles.logoLink}>
+          <Image
+            src="/wordmark-logo.png"
+            alt="Sartiarum"
+            width={168}
+            height={42}
+            className={styles.wordmark}
+            priority
+          />
         </Link>
       </div>
 
-      {/* Search */}
-      <div style={{ padding: '10px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ede8e1', borderRadius: 9, padding: '6px 10px' }}>
-          <Search size={13} color="#9AA4A0" />
-          <input
-            value={searchValue}
-            onChange={e => setSearchValue(e.target.value)}
-            placeholder="Search"
-            style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 13, color: '#141516', fontFamily: 'Inter, sans-serif' }}
-          />
-        </div>
+      <div className={styles.searchShell}>
+        <MagnifyingGlass size={16} className={styles.searchIcon} weight="regular" />
+        <input
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search"
+          className={styles.searchInput}
+        />
+        <kbd className={styles.searchKbd}>Ctrl+K</kbd>
       </div>
 
-      {/* Scrollable nav */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
-        {/* Pinned boards */}
+      <div className={styles.navScroll}>
         {pinnedBoards.length > 0 && (
-          <div style={{ marginBottom: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', marginBottom: 2 }}>
-              <Pin size={11} color="#9AA4A0" />
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#9AA4A0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pinned</span>
+          <section className={styles.section}>
+            <div className={styles.sectionLabel}>
+              <PushPinSimple size={13} weight="light" />
+              <span>Pinned</span>
             </div>
-            {pinnedBoards.map(board => {
-              const isActive = pathname.includes(`board=${board.id}`)
-              return (
+            <div className={styles.stack}>
+              {pinnedBoards.filter(boardMatchesSearch).map((board) => (
                 <Link
                   key={board.id}
                   href={`/app?board=${board.id}`}
-                  style={navItemStyle(isActive)}
+                  className={`${styles.navItem} ${activeBoardId === board.id ? styles.navItemActive : ''}`}
                 >
-                  <span style={{ fontSize: 14 }}>{board.icon ?? '📝'}</span>
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
-                  {board.isPinned && <Star size={11} color="#4F6F3D" fill="#4F6F3D" />}
+                  <span className={styles.navIcon}>{board.icon ?? 'D'}</span>
+                  <span className={styles.navText}>{board.name}</span>
+                  <PushPinSimple
+                    size={14}
+                    weight="fill"
+                    className={`${styles.trailingIcon} ${styles.trailingAccent}`}
+                  />
                 </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className={styles.section}>
+          <div className={styles.sectionLabel}>
+            <ListMagnifyingGlass size={13} weight="light" />
+            <span>Spaces</span>
+          </div>
+
+          <div className={styles.stack}>
+            {spaces.map((space) => {
+              const isCollapsed = collapsedSpaces.has(space.id)
+              const spaceBoards = getBoardsForSpace(space.id)
+              const hasActiveBoard = spaceBoards.some((board) => board.id === activeBoardId)
+              return (
+                <div key={space.id} className={styles.spaceGroup}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSpace(space.id)}
+                    className={styles.spaceButton}
+                  >
+                    {isCollapsed ? (
+                      <CaretRight size={12} weight="bold" />
+                    ) : (
+                      <CaretDown size={12} weight="bold" />
+                    )}
+                    <span className={styles.spaceName}>{space.name}</span>
+                    {hasActiveBoard && <span className={styles.activeDot} />}
+                  </button>
+                  {!isCollapsed && (
+                    <div className={styles.stack}>
+                      {spaceBoards.map((board) => (
+                        <Link
+                          key={board.id}
+                          href={`/app?board=${board.id}`}
+                          className={`${styles.navItem} ${styles.nestedItem} ${activeBoardId === board.id ? styles.navItemActive : ''}`}
+                        >
+                          <span className={styles.navIcon}>{board.icon ?? 'B'}</span>
+                          <span className={styles.navText}>{board.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )
             })}
           </div>
-        )}
+        </section>
 
-        {/* Spaces & boards */}
-        {spaces.map(space => {
-          const spaceBoards = getBoardsForSpace(space.id)
-          const isCollapsed = collapsedSpaces.has(space.id)
-          return (
-            <div key={space.id} style={{ marginBottom: 2 }}>
-              <button
-                onClick={() => toggleSpace(space.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', border: 'none', background: 'none', cursor: 'pointer', padding: '4px 12px', borderRadius: 8, textAlign: 'left' }}
-              >
-                {isCollapsed ? <ChevronRight size={12} color="#9AA4A0" /> : <ChevronDown size={12} color="#9AA4A0" />}
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#4F5963', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{space.name}</span>
-              </button>
-              {!isCollapsed && spaceBoards.map(board => {
-                const isActive = pathname.includes(`board=${board.id}`)
-                return (
-                  <Link
-                    key={board.id}
-                    href={`/app?board=${board.id}`}
-                    style={{ ...navItemStyle(isActive), paddingLeft: 28, fontSize: 13 }}
-                  >
-                    <span style={{ fontSize: 13 }}>{board.icon ?? '📝'}</span>
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{board.name}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          )
-        })}
+        <div className={styles.divider} />
 
-        {/* Divider */}
-        <div style={{ height: 1, background: '#ede8e1', margin: '10px 8px' }} />
-
-        {/* Primary nav */}
-        <Link
-          href="/app/learn"
-          style={{ ...navItemStyle(false), opacity: 0.5, pointerEvents: 'none', marginBottom: 2 }}
-          aria-disabled
-        >
-          <BookOpen size={15} />
-          Learn
-          <span style={{ marginLeft: 'auto', fontSize: 10, background: '#eef2e9', color: '#4F6F3D', borderRadius: 20, padding: '1px 7px', fontWeight: 600 }}>Soon</span>
-        </Link>
-        <Link
-          href="/app/plan"
-          style={{ ...navItemStyle(false), opacity: 0.5, pointerEvents: 'none', marginBottom: 2 }}
-          aria-disabled
-        >
-          <Calendar size={15} />
-          Plan
-          <span style={{ marginLeft: 'auto', fontSize: 10, background: '#eef2e9', color: '#4F6F3D', borderRadius: 20, padding: '1px 7px', fontWeight: 600 }}>Soon</span>
-        </Link>
-        <Link href="/app/settings/profile" style={{ ...navItemStyle(pathname.startsWith('/app/settings')), marginBottom: 2 }}>
-          <Settings size={15} />
-          Settings
-        </Link>
+        <div className={styles.stack}>
+          <Link href="/app/learn" className={styles.navItem}>
+            <GraduationCap size={16} weight="regular" />
+            <span className={styles.navText}>Learn</span>
+            <span className={styles.soonBadge}>Soon</span>
+          </Link>
+          <Link href="/app/plan" className={styles.navItem}>
+            <ListMagnifyingGlass size={16} weight="regular" />
+            <span className={styles.navText}>Plan</span>
+            <span className={styles.soonBadge}>Soon</span>
+          </Link>
+          <Link
+            href="/app/settings/profile"
+            className={`${styles.navItem} ${pathname.startsWith('/app/settings') ? styles.navItemActive : ''}`}
+          >
+            <Gear size={16} weight="regular" />
+            <span className={styles.navText}>Settings</span>
+          </Link>
+        </div>
       </div>
 
-      {/* Account + usage */}
-      <div style={{ borderTop: '1px solid #ede8e1', padding: '12px 12px' }}>
-        {/* Trial usage bar */}
-        {isTrialing && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 500, color: '#4F5963' }}>{aiUsageCount} AI actions used</span>
-              <span style={{ fontSize: 11.5, color: '#9AA4A0' }}>{trialDaysLeft}d left</span>
+      <div className={styles.accountArea}>
+        <div className={styles.planCard}>
+          <div className={styles.planTopRow}>
+            <div className={styles.avatar}>{createInitials(profile?.displayName)}</div>
+            <div className={styles.planText}>
+              <p className={styles.planTitle}>{profile?.displayName ?? 'Creator plan'}</p>
+              <p className={styles.planSubtitle}>{isTrialing ? 'Creator plan' : 'Pro plan'}</p>
             </div>
-            <div style={{ height: 4, background: '#ede8e1', borderRadius: 99 }}>
-              <div style={{ height: '100%', background: '#4F6F3D', borderRadius: 99, width: `${Math.min(100, (aiUsageCount / 50) * 100)}%`, transition: 'width 0.3s' }} />
-            </div>
+            <button
+              type="button"
+              title="Sign out"
+              onClick={handleSignOut}
+              className={styles.iconButton}
+            >
+              <SignOut size={16} weight="regular" />
+            </button>
           </div>
-        )}
 
-        {/* User */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#4F6F3D', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
-              {(profile?.displayName ?? 'U')[0].toUpperCase()}
-            </span>
+          <div className={styles.storageMeta}>
+            <span>{aiUsageCount} AI actions used</span>
+            <span>{trialDaysLeft}d left</span>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12.5, fontWeight: 600, color: '#141516', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-              {profile?.displayName ?? 'Writer'}
-            </p>
-            <p style={{ fontSize: 11, color: '#9AA4A0', margin: 0 }}>{isTrialing ? 'Free trial' : 'Pro'}</p>
+          <div className={styles.progressTrack}>
+            <div
+              className={styles.progressValue}
+              style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}
+            />
           </div>
-          <button
-            onClick={handleSignOut}
-            title="Sign out"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9AA4A0', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6 }}
-          >
-            <LogOut size={14} />
-          </button>
         </div>
       </div>
     </aside>

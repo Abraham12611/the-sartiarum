@@ -31,16 +31,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     : null
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#faf7f0', fontFamily: 'Inter, sans-serif' }}>
       <Sidebar
         spaces={spacesData}
         boards={boardsData}
         profile={profileData[0] ?? null}
         subscription={subscription}
         aiUsageCount={safeAiUsageCount}
-        userId={user.id}
       />
-      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>{children}</main>
+      <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
     </div>
   )
 }

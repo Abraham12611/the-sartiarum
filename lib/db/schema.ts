@@ -86,3 +86,12 @@ export const aiUsage = pgTable('ai_usage', {
   model:      text('model'),
   createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const upcomingTasks = pgTable('upcoming_tasks', {
+  id:            uuid('id').primaryKey().defaultRandom(),
+  ownerId:       uuid('owner_id').notNull(),
+  title:         text('title').notNull(),
+  scheduledFor:  timestamp('scheduled_for', { withTimezone: true }).notNull(),
+  documentId:    uuid('document_id'),
+  createdAt:     timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})

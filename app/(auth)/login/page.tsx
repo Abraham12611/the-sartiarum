@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeSlash } from '@phosphor-icons/react'
 
 function GoogleIcon() {
   return (
@@ -141,7 +141,7 @@ export default function LoginPage() {
             }}
           >
             <GoogleIcon />
-            {googleLoading ? 'Redirecting…' : 'Continue with Google'}
+            {googleLoading ? 'Redirecting...' : 'Continue with Google'}
           </button>
 
           {/* Divider */}
@@ -212,7 +212,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(p => !p)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9AA4A0', display: 'flex', alignItems: 'center' }}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function LoginPage() {
                 transition: 'background 0.15s',
               }}
             >
-              {loading ? 'Signing in…' : 'Continue'}
+              {loading ? 'Signing in...' : 'Continue'}
             </button>
           </form>
 
@@ -255,8 +255,8 @@ export default function LoginPage() {
 
       {/* Footer note */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, paddingBottom: 24, fontSize: 12, color: '#9AA4A0', flexWrap: 'wrap' }}>
-        <span>🍎 Mac-first. Also coming to Web, Windows, and Linux.</span>
-        <span>🔒 Your drafts stay yours.</span>
+        <span>Mac-first. Also coming to Web, Windows, and Linux.</span>
+        <span>Your drafts stay yours.</span>
       </div>
     </div>
   )
