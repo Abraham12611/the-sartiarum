@@ -132,7 +132,7 @@ export function DashboardSidebar({
     >
       <SidebarHeader className="gap-3 px-3.5 pt-3 pb-1.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
             <span className="size-3.5 rounded-full bg-[#FF5F57]" />
             <span className="size-3.5 rounded-full bg-[#FEBB2E]" />
             <span className="size-3.5 rounded-full bg-[#28C840]" />
