@@ -1,9 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { and, desc, eq, gte } from 'drizzle-orm'
+import { and, desc, eq, gte, count as dbCount } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { boards, documents, sections, upcomingTasks } from '@/lib/db/schema'
+import {
+  boards,
+  documentSourceLinks,
+  documents,
+  notes,
+  sections,
+  upcomingTasks,
+} from '@/lib/db/schema'
 import { BoardView } from '@/components/dashboard/BoardView'
+import type { DashboardStatus } from '@/components/dashboard/SectionTabs'
 import { StatsPanel } from '@/components/dashboard/StatsPanel'
 
 export default async function DashboardPage({
@@ -66,8 +74,8 @@ export default async function DashboardPage({
     boardSections,
     boardDocuments,
     allDocuments,
-    allBoards,
-    allSections,
+    notesCountRows,
+    sourcesLinkedCountRows,
     recentDocuments,
     taskItems,
   ] = await Promise.all([
@@ -91,8 +99,26 @@ export default async function DashboardPage({
       .from(documents)
       .where(eq(documents.ownerId, user.id))
       .orderBy(desc(documents.updatedAt)),
-    db.select().from(boards).where(eq(boards.ownerId, user.id)),
-    db.select().from(sections).where(eq(sections.ownerId, user.id)),
+    (async () => {
+      try {
+        return await db
+          .select({ value: dbCount() })
+          .from(notes)
+          .where(eq(notes.ownerId, user.id))
+      } catch {
+        return [{ value: 0 }]
+      }
+    })(),
+    (async () => {
+      try {
+        return await db
+          .select({ value: dbCount() })
+          .from(documentSourceLinks)
+          .where(eq(documentSourceLinks.ownerId, user.id))
+      } catch {
+        return [{ value: 0 }]
+      }
+    })(),
     db
       .select()
       .from(documents)
@@ -110,34 +136,33 @@ export default async function DashboardPage({
   const activeBoard = activeBoardRows[0]
   if (!activeBoard) redirect('/app')
 
-  const boardNameById = new Map(allBoards.map((board) => [board.id, board.name.toLowerCase()]))
-  const sectionNameById = new Map(
-    allSections.map((section) => [section.id, section.name.toLowerCase()]),
-  )
+  const normalizedAllDocuments = allDocuments.map((document) => ({
+    ...document,
+    status: normalizeStatus(document.status),
+  }))
 
-  let notesCount = 0
-  let sourcesLinkedCount = 0
-  let inReviewCount = 0
-
-  for (const document of allDocuments) {
-    const boardContext = boardNameById.get(document.boardId ?? '') ?? ''
-    const sectionContext = sectionNameById.get(document.sectionId ?? '') ?? ''
-    const context = `${boardContext} ${sectionContext}`
-
-    if (context.includes('note')) notesCount += 1
-    if (context.includes('source')) sourcesLinkedCount += 1
-    if (context.includes('review')) inReviewCount += 1
-  }
+  const notesCount = Number(notesCountRows[0]?.value ?? 0)
+  const sourcesLinkedCount = Number(sourcesLinkedCountRows[0]?.value ?? 0)
+  const inReviewCount = normalizedAllDocuments.filter(
+    (document) => document.status === 'in_review',
+  ).length
 
   const defaultSectionId =
     boardSections.find((section) => section.name.toLowerCase().includes('draft'))?.id ??
     boardSections[0]?.id
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', minHeight: '100vh', width: '100%' }}>
-      <BoardView board={activeBoard} sections={boardSections} documents={boardDocuments} />
+    <div className="grid h-full min-h-0 w-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <BoardView
+        board={activeBoard}
+        sections={boardSections}
+        documents={boardDocuments.map((document) => ({
+          ...document,
+          status: normalizeStatus(document.status),
+        }))}
+      />
       <StatsPanel
-        documentsCount={allDocuments.length}
+        documentsCount={normalizedAllDocuments.length}
         notesCount={notesCount}
         sourcesLinkedCount={sourcesLinkedCount}
         inReviewCount={inReviewCount}
@@ -152,4 +177,11 @@ export default async function DashboardPage({
       />
     </div>
   )
+}
+
+function normalizeStatus(status: string | null): Exclude<DashboardStatus, 'all'> {
+  if (status === 'ideas') return 'ideas'
+  if (status === 'in_review') return 'in_review'
+  if (status === 'final') return 'final'
+  return 'draft'
 }

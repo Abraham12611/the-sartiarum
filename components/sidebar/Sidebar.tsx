@@ -5,17 +5,41 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import {
+  BookOpenText,
   CaretDown,
   CaretRight,
+  FileText,
   Gear,
-  GraduationCap,
-  ListMagnifyingGlass,
+  Lightbulb,
   MagnifyingGlass,
+  Note,
+  PencilSimpleLine,
   PushPinSimple,
+  SidebarSimple,
   SignOut,
+  Stack,
 } from '@phosphor-icons/react'
 import { signOut } from '@/lib/actions/auth'
-import styles from './Sidebar.module.css'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from '@/components/ui/sidebar'
 
 type Space = { id: string; name: string; sortOrder: number }
 type Board = {
@@ -30,7 +54,7 @@ type Board = {
 type Profile = { displayName: string | null; avatarUrl: string | null } | null
 type Subscription = { status: string; trialEndsAt: string | null } | null
 
-interface SidebarProps {
+interface DashboardSidebarProps {
   spaces: Space[]
   boards: Board[]
   profile: Profile
@@ -38,20 +62,38 @@ interface SidebarProps {
   aiUsageCount: number
 }
 
-export function Sidebar({ spaces, boards, profile, subscription, aiUsageCount }: SidebarProps) {
+const NAV_ITEMS = [
+  { href: '/app/learn', label: 'Learn', icon: BookOpenText },
+  { href: '/app/plan', label: 'Plan', icon: Stack },
+  { href: '/app/settings/profile', label: 'Settings', icon: Gear },
+]
+
+const BOARD_ICON_MAP: Record<string, typeof PencilSimpleLine> = {
+  draft: PencilSimpleLine,
+  essay: FileText,
+  idea: Lightbulb,
+  note: Note,
+}
+
+export function DashboardSidebar({
+  spaces,
+  boards,
+  profile,
+  subscription,
+  aiUsageCount,
+}: DashboardSidebarProps) {
+  const { toggleSidebar } = useSidebar()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const activeBoardId = searchParams.get('board')
   const [searchValue, setSearchValue] = useState('')
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
 
-  const activeBoardId = searchParams.get('board')
   const pinnedBoards = boards.filter((board) => board.isPinned)
-  const boardMatchesSearch = (board: Board) =>
-    board.name.toLowerCase().includes(searchValue.trim().toLowerCase())
-
   const filteredBoards = useMemo(() => {
     if (!searchValue.trim()) return boards
-    return boards.filter(boardMatchesSearch)
+    const q = searchValue.trim().toLowerCase()
+    return boards.filter((board) => board.name.toLowerCase().includes(q))
   }, [boards, searchValue])
 
   const isTrialing = subscription?.status === 'trialing'
@@ -60,17 +102,14 @@ export function Sidebar({ spaces, boards, profile, subscription, aiUsageCount }:
     ? Math.max(0, Math.ceil((trialEndsAtMs - Date.now()) / 86400000))
     : 0
 
-  function toggleSpace(spaceId: string) {
-    setCollapsedSpaces((prev) => {
-      const next = new Set(prev)
-      if (next.has(spaceId)) next.delete(spaceId)
-      else next.add(spaceId)
-      return next
-    })
-  }
-
   function getBoardsForSpace(spaceId: string) {
     return filteredBoards.filter((board) => board.spaceId === spaceId)
+  }
+
+  function iconForBoard(boardName: string) {
+    const key = Object.keys(BOARD_ICON_MAP).find((name) => boardName.toLowerCase().includes(name))
+    const Icon = key ? BOARD_ICON_MAP[key] : FileText
+    return <Icon size={16} weight="regular" />
   }
 
   async function handleSignOut() {
@@ -78,7 +117,7 @@ export function Sidebar({ spaces, boards, profile, subscription, aiUsageCount }:
   }
 
   function createInitials(name: string | null | undefined) {
-    if (!name?.trim()) return 'S'
+    if (!name?.trim()) return 'SA'
     return name
       .trim()
       .split(/\s+/)
@@ -88,162 +127,211 @@ export function Sidebar({ spaces, boards, profile, subscription, aiUsageCount }:
   }
 
   return (
-    <aside className={styles.sidebar}>
-      <div className={styles.headerArea}>
-        <div className={styles.windowControls} aria-hidden>
-          <span className={`${styles.dot} ${styles.dotRed}`} />
-          <span className={`${styles.dot} ${styles.dotYellow}`} />
-          <span className={`${styles.dot} ${styles.dotGreen}`} />
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-[#E5DED4]"
+      style={{ '--sidebar-width': '18.5rem' } as React.CSSProperties}
+    >
+      <SidebarHeader className="gap-3 px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="size-3 rounded-full bg-[#FF5F57]" />
+            <span className="size-3 rounded-full bg-[#FEBB2E]" />
+            <span className="size-3 rounded-full bg-[#28C840]" />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={toggleSidebar}
+            className="size-7 rounded-md text-[#6C746C] group-data-[collapsible=icon]:hidden"
+            aria-label="Collapse sidebar"
+          >
+            <SidebarSimple size={15} />
+          </Button>
         </div>
-        <Link href="/app" className={styles.logoLink}>
+
+        <Link href="/app" className="group-data-[collapsible=icon]:hidden">
           <Image
             src="/wordmark-logo.png"
             alt="Sartiarum"
-            width={168}
-            height={42}
-            className={styles.wordmark}
+            width={134}
+            height={34}
             priority
+            className="h-auto w-[134px]"
           />
         </Link>
-      </div>
 
-      <div className={styles.searchShell}>
-        <MagnifyingGlass size={16} className={styles.searchIcon} weight="regular" />
-        <input
-          value={searchValue}
-          onChange={(event) => setSearchValue(event.target.value)}
-          placeholder="Search"
-          className={styles.searchInput}
-        />
-        <kbd className={styles.searchKbd}>Ctrl+K</kbd>
-      </div>
+        <Link href="/app" className="hidden group-data-[collapsible=icon]:flex">
+          <Image
+            src="/sartiatum-logo-icon.png"
+            alt="Sartiarum"
+            width={24}
+            height={24}
+            priority
+            className="h-6 w-6"
+          />
+        </Link>
 
-      <div className={styles.navScroll}>
+        <div className="relative group-data-[collapsible=icon]:hidden">
+          <MagnifyingGlass size={15} className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+            placeholder="Search"
+            className="h-9 rounded-xl border-[#E5DED4] bg-white/75 pl-9 pr-14 text-sm"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
+            Ctrl+K
+          </span>
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="px-2 pb-3">
         {pinnedBoards.length > 0 && (
-          <section className={styles.section}>
-            <div className={styles.sectionLabel}>
-              <PushPinSimple size={13} weight="light" />
-              <span>Pinned</span>
-            </div>
-            <div className={styles.stack}>
-              {pinnedBoards.filter(boardMatchesSearch).map((board) => (
-                <Link
-                  key={board.id}
-                  href={`/app?board=${board.id}`}
-                  className={`${styles.navItem} ${activeBoardId === board.id ? styles.navItemActive : ''}`}
-                >
-                  <span className={styles.navIcon}>{board.icon ?? 'D'}</span>
-                  <span className={styles.navText}>{board.name}</span>
-                  <PushPinSimple
-                    size={14}
-                    weight="fill"
-                    className={`${styles.trailingIcon} ${styles.trailingAccent}`}
-                  />
-                </Link>
-              ))}
-            </div>
-          </section>
+          <SidebarGroup className="p-0">
+            <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-[0.08em] text-[#6F766F]">
+              Pinned
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {pinnedBoards.map((board) => (
+                  <SidebarMenuItem key={board.id}>
+                    <SidebarMenuButton
+                      isActive={activeBoardId === board.id}
+                      className="h-8 rounded-lg data-[active=true]:bg-[#F1F4EB] data-[active=true]:text-[#35582F]"
+                      render={<Link href={`/app?board=${board.id}`} />}
+                    >
+                      {iconForBoard(board.name)}
+                      <span>{board.name}</span>
+                      <PushPinSimple size={14} className="ml-auto text-[#527A3D]" />
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
 
-        <section className={styles.section}>
-          <div className={styles.sectionLabel}>
-            <ListMagnifyingGlass size={13} weight="light" />
-            <span>Spaces</span>
-          </div>
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-[0.08em] text-[#6F766F]">
+            Spaces
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {spaces.map((space) => {
+                const isCollapsed = collapsedSpaces.has(space.id)
+                const spaceBoards = getBoardsForSpace(space.id)
+                return (
+                  <div key={space.id} className="mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setCollapsedSpaces((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(space.id)) next.delete(space.id)
+                          else next.add(space.id)
+                          return next
+                        })
+                      }}
+                      className="group-data-[collapsible=icon]:hidden h-8 w-full justify-start gap-1 px-3 text-sm font-semibold text-[#4F5963]"
+                    >
+                      {isCollapsed ? <CaretRight size={12} /> : <CaretDown size={12} />}
+                      {space.name}
+                    </Button>
 
-          <div className={styles.stack}>
-            {spaces.map((space) => {
-              const isCollapsed = collapsedSpaces.has(space.id)
-              const spaceBoards = getBoardsForSpace(space.id)
-              const hasActiveBoard = spaceBoards.some((board) => board.id === activeBoardId)
-              return (
-                <div key={space.id} className={styles.spaceGroup}>
-                  <button
-                    type="button"
-                    onClick={() => toggleSpace(space.id)}
-                    className={styles.spaceButton}
-                  >
-                    {isCollapsed ? (
-                      <CaretRight size={12} weight="bold" />
-                    ) : (
-                      <CaretDown size={12} weight="bold" />
+                    {!isCollapsed && (
+                      <SidebarMenu className="group-data-[collapsible=icon]:hidden pl-2">
+                        {spaceBoards.map((board) => (
+                          <SidebarMenuItem key={board.id}>
+                            <SidebarMenuButton
+                              isActive={activeBoardId === board.id}
+                              className="h-8 rounded-lg data-[active=true]:bg-[#F1F4EB] data-[active=true]:text-[#35582F]"
+                              render={<Link href={`/app?board=${board.id}`} />}
+                            >
+                              {iconForBoard(board.name)}
+                              <span>{board.name}</span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
                     )}
-                    <span className={styles.spaceName}>{space.name}</span>
-                    {hasActiveBoard && <span className={styles.activeDot} />}
-                  </button>
-                  {!isCollapsed && (
-                    <div className={styles.stack}>
-                      {spaceBoards.map((board) => (
-                        <Link
-                          key={board.id}
-                          href={`/app?board=${board.id}`}
-                          className={`${styles.navItem} ${styles.nestedItem} ${activeBoardId === board.id ? styles.navItemActive : ''}`}
-                        >
-                          <span className={styles.navIcon}>{board.icon ?? 'B'}</span>
-                          <span className={styles.navText}>{board.name}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </section>
+                  </div>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-        <div className={styles.divider} />
+        <Separator className="my-3 bg-[#ECE5DC]" />
 
-        <div className={styles.stack}>
-          <Link href="/app/learn" className={styles.navItem}>
-            <GraduationCap size={16} weight="regular" />
-            <span className={styles.navText}>Learn</span>
-            <span className={styles.soonBadge}>Soon</span>
-          </Link>
-          <Link href="/app/plan" className={styles.navItem}>
-            <ListMagnifyingGlass size={16} weight="regular" />
-            <span className={styles.navText}>Plan</span>
-            <span className={styles.soonBadge}>Soon</span>
-          </Link>
-          <Link
-            href="/app/settings/profile"
-            className={`${styles.navItem} ${pathname.startsWith('/app/settings') ? styles.navItemActive : ''}`}
-          >
-            <Gear size={16} weight="regular" />
-            <span className={styles.navText}>Settings</span>
-          </Link>
-        </div>
-      </div>
+        <SidebarGroup className="p-0">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon
+                const active = pathname.startsWith(item.href)
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={active}
+                      className="h-8 rounded-lg data-[active=true]:bg-[#F1F4EB] data-[active=true]:text-[#35582F]"
+                      render={<Link href={item.href} />}
+                    >
+                      <Icon size={16} />
+                      <span>{item.label}</span>
+                      {item.href !== '/app/settings/profile' ? (
+                        <Badge variant="outline" className="ml-auto rounded-full px-2 text-[10px]">
+                          Soon
+                        </Badge>
+                      ) : null}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-      <div className={styles.accountArea}>
-        <div className={styles.planCard}>
-          <div className={styles.planTopRow}>
-            <div className={styles.avatar}>{createInitials(profile?.displayName)}</div>
-            <div className={styles.planText}>
-              <p className={styles.planTitle}>{profile?.displayName ?? 'Creator plan'}</p>
-              <p className={styles.planSubtitle}>{isTrialing ? 'Creator plan' : 'Pro plan'}</p>
+      <SidebarFooter className="border-t border-[#ECE5DC] p-3">
+        <Card className="rounded-xl border-[#E5DED4] bg-white p-3 group-data-[collapsible=icon]:p-2">
+          <div className="group-data-[collapsible=icon]:hidden mb-3 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Avatar className="size-8 border border-[#D7D9D2]">
+                <AvatarFallback className="bg-[#35582F] text-[11px] text-white">
+                  {createInitials(profile?.displayName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-[#1E2220]">
+                  {profile?.displayName ?? 'Creator plan'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isTrialing ? 'Creator plan' : 'Pro plan'}
+                </p>
+              </div>
             </div>
-            <button
-              type="button"
-              title="Sign out"
-              onClick={handleSignOut}
-              className={styles.iconButton}
-            >
-              <SignOut size={16} weight="regular" />
-            </button>
+            <Button size="icon-sm" variant="ghost" onClick={handleSignOut} className="size-7">
+              <SignOut size={15} />
+            </Button>
           </div>
 
-          <div className={styles.storageMeta}>
-            <span>{aiUsageCount} AI actions used</span>
-            <span>{trialDaysLeft}d left</span>
+          <div className="group-data-[collapsible=icon]:hidden space-y-1">
+            <div className="flex items-center justify-between text-[11px] text-[#677067]">
+              <span>{aiUsageCount} AI actions used</span>
+              <span>{trialDaysLeft}d left</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-[#EAE5DA]">
+              <div
+                className="h-full rounded-full bg-[#4F6F3D]"
+                style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}
+              />
+            </div>
           </div>
-          <div className={styles.progressTrack}>
-            <div
-              className={styles.progressValue}
-              style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}
-            />
-          </div>
-        </div>
-      </div>
-    </aside>
+        </Card>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   )
 }

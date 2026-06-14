@@ -52,8 +52,36 @@ export const documents = pgTable('documents', {
   length:     text('length').notNull().default('Medium'),
   audience:   text('audience').notNull().default('General'),
   wordCount:  integer('word_count').notNull().default(0),
+  status:     text('status').notNull().default('draft'),
   createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:  timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const notes = pgTable('notes', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ownerId:    uuid('owner_id').notNull(),
+  boardId:    uuid('board_id'),
+  title:      text('title').notNull().default('Untitled note'),
+  content:    text('content').notNull().default(''),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:  timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const sources = pgTable('sources', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ownerId:    uuid('owner_id').notNull(),
+  boardId:    uuid('board_id'),
+  title:      text('title').notNull(),
+  url:        text('url'),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const documentSourceLinks = pgTable('document_source_links', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ownerId:    uuid('owner_id').notNull(),
+  documentId: uuid('document_id').notNull(),
+  sourceId:   uuid('source_id').notNull(),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const documentVersions = pgTable('document_versions', {

@@ -4,14 +4,20 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CaretDown,
+  DotsThree,
   FadersHorizontal,
   MagnifyingGlass,
   Plus,
+  SidebarSimple,
 } from '@phosphor-icons/react'
 import { createDocument } from '@/lib/actions/documents'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useSidebar } from '@/components/ui/sidebar'
 import { DocCard } from './DocCard'
-import { SectionTabs } from './SectionTabs'
-import styles from './BoardView.module.css'
+import { DashboardStatus, SectionTabs } from './SectionTabs'
 
 type Section = { id: string; name: string; sortOrder: number }
 type Document = {
@@ -20,6 +26,7 @@ type Document = {
   content: unknown
   wordCount: number
   sectionId: string | null
+  status: DashboardStatus
   updatedAt: Date
   createdAt: Date
 }
@@ -31,30 +38,44 @@ interface BoardViewProps {
   documents: Document[]
 }
 
+const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus }> = [
+  { key: 'idea', status: 'ideas' },
+  { key: 'review', status: 'in_review' },
+  { key: 'final', status: 'final' },
+  { key: 'draft', status: 'draft' },
+]
+
 export function BoardView({ board, sections, documents }: BoardViewProps) {
   const router = useRouter()
-  const [activeSection, setActiveSection] = useState<string | null>(null)
+  const { toggleSidebar } = useSidebar()
+  const [activeStatus, setActiveStatus] = useState<DashboardStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [creating, setCreating] = useState(false)
 
-  const filteredBySection = activeSection
-    ? documents.filter((doc) => doc.sectionId === activeSection)
-    : documents
-
-  const filteredDocs = filteredBySection.filter((doc) => {
-    if (!searchQuery.trim()) return true
-    const text = `${doc.title} ${extractSnippet(doc.content, 180)}`.toLowerCase()
-    return text.includes(searchQuery.trim().toLowerCase())
-  })
-
-  const featuredDoc = filteredDocs[0]
-  const gridDocs = filteredDocs.slice(1)
   const defaultDraftSectionId = useMemo(
     () =>
       sections.find((section) => section.name.toLowerCase().includes('draft'))?.id ??
       sections[0]?.id,
     [sections],
   )
+
+  const filteredDocs = documents
+    .map((doc) => ({
+      ...doc,
+      status: doc.status ?? inferStatusFromSectionId(doc.sectionId, sections),
+    }))
+    .filter((doc) => {
+      if (activeStatus === 'all') return true
+      return doc.status === activeStatus
+    })
+    .filter((doc) => {
+      if (!searchQuery.trim()) return true
+      const text = `${doc.title} ${extractSnippet(doc.content, 180)}`.toLowerCase()
+      return text.includes(searchQuery.trim().toLowerCase())
+    })
+
+  const featuredDoc = filteredDocs[0]
+  const gridDocs = filteredDocs.slice(1)
 
   async function handleCreateDocument() {
     if (creating) return
@@ -68,94 +89,125 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
   }
 
   return (
-    <section className={styles.main}>
-      <header className={styles.topRow}>
-        <button type="button" className={styles.viewDropdown}>
-          <span>{board.name || 'Drafts'}</span>
-          <CaretDown size={14} weight="bold" />
-        </button>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-5 pb-4 pt-4 xl:px-8">
+      <header className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className="size-8 rounded-lg border-[#E5DED4] bg-white/80 text-[#4D5650]"
+            onClick={toggleSidebar}
+          >
+            <SidebarSimple size={17} />
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
+          >
+            {board.name || 'Drafts'}
+            <CaretDown size={14} weight="bold" />
+          </Button>
+        </div>
 
-        <div className={styles.headerActions}>
-          <label className={styles.search}>
-            <MagnifyingGlass size={16} />
-            <input
+        <div className="flex items-center gap-2">
+          <div className="relative w-[220px] xl:w-[250px]">
+            <MagnifyingGlass size={15} className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search"
+              className="h-10 rounded-xl border-[#E5DED4] bg-white/80 pl-9 text-sm"
             />
-          </label>
-
-          <button type="button" className={styles.iconAction} aria-label="Filter documents">
-            <FadersHorizontal size={17} />
-          </button>
-
-          <button
-            type="button"
-            className={styles.newButton}
+          </div>
+          <Button variant="outline" size="icon-sm" className="size-10 rounded-xl border-[#E5DED4] bg-white/80 text-[#4D5650]">
+            <FadersHorizontal size={16} />
+          </Button>
+          <Button
             onClick={handleCreateDocument}
             disabled={creating}
+            className="h-10 rounded-xl bg-[#2F6E1F] px-4 text-sm font-semibold text-white hover:bg-[#285E1B]"
           >
             <Plus size={16} weight="bold" />
             {creating ? 'Creating...' : 'New'}
             <CaretDown size={14} weight="bold" />
-          </button>
+          </Button>
         </div>
       </header>
 
-      <div className={styles.titleBlock}>
-        <h1 className={styles.pageTitle}>Your writing home</h1>
-        <p className={styles.pageSubtitle}>
+      <div className="mb-3">
+        <h1 className="font-[var(--font-newsreader)] text-[42px] leading-[1.08] font-semibold tracking-[-0.03em] text-[#151817] xl:text-[46px]">
+          Your writing home
+        </h1>
+        <p className="mt-1 text-[16px] text-[#4F5963] xl:text-[17px]">
           Organize drafts, ideas, and projects in one calm space.
         </p>
       </div>
 
       <SectionTabs
-        sections={sections}
-        activeSection={activeSection}
-        onSelect={setActiveSection}
+        activeStatus={activeStatus}
+        onSelect={setActiveStatus}
         totalCount={documents.length}
       />
 
-      <div className={styles.contentStack}>
+      <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
         {featuredDoc ? (
           <>
-            <article
-              className={styles.featuredCard}
+            <Card
               onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}
+              className="grid cursor-pointer overflow-hidden rounded-2xl border-[#E5DED4] bg-white/80 p-0 shadow-none xl:grid-cols-[1fr_320px]"
             >
-              <div className={styles.featuredBody}>
-                <span className={styles.featuredBadge}>Current Draft</span>
-                <h2 className={styles.featuredTitle}>{featuredDoc.title || 'Untitled'}</h2>
-                <p className={styles.featuredDescription}>
+              <div className="p-5">
+                <Badge className="mb-3 rounded-full bg-[#E8F1DC] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#35582F]">
+                  Current Draft
+                </Badge>
+                <h2 className="mb-2 font-[var(--font-newsreader)] text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[34px]">
+                  {featuredDoc.title || 'Untitled'}
+                </h2>
+                <p className="mb-4 max-w-[630px] text-[15px] leading-[1.42] text-[#445049] xl:text-[16px]">
                   {extractSnippet(featuredDoc.content, 220) ||
                     'Open this draft to continue shaping your ideas with focus and clarity.'}
                 </p>
-                <div className={styles.featuredMeta}>
-                  <span>{getSectionLabel(featuredDoc.sectionId, sections)}</span>
+                <div className="flex flex-wrap items-center gap-4 text-[12px] text-[#6A746C]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block size-1.5 rounded-full bg-[#4F6F3D]" />
+                    {featuredDoc.status === 'draft' ? 'Draft' : statusLabel(featuredDoc.status)}
+                  </span>
                   <span>{featuredDoc.wordCount.toLocaleString()} words</span>
                   <span>{timeAgo(featuredDoc.updatedAt)}</span>
                 </div>
               </div>
-              <div className={styles.featuredImage} aria-hidden />
-            </article>
+              <div className="relative min-h-[220px] border-l border-[#EEE5DB] bg-[linear-gradient(136deg,#ECE8E0_0%,#D7D2C7_45%,#B4AD9E_100%)]">
+                <div className="absolute inset-5 rounded-xl border border-white/50 bg-white/10" />
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  className="absolute right-3 top-3 size-7 rounded-md border-[#E5DED4] bg-white/75 text-[#5D665E]"
+                >
+                  <DotsThree size={15} weight="bold" />
+                </Button>
+              </div>
+            </Card>
 
-            {gridDocs.length > 0 && (
-              <div className={styles.grid}>
+            {gridDocs.length > 0 ? (
+              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
                 {gridDocs.map((doc) => (
-                  <DocCard key={doc.id} doc={doc} sections={sections} />
+                  <DocCard key={doc.id} doc={doc} />
                 ))}
               </div>
-            )}
+            ) : null}
           </>
         ) : (
-          <div className={styles.empty}>
-            <p className={styles.emptyTitle}>No documents yet</p>
-            <p className={styles.emptySubtitle}>Create your first document to begin writing.</p>
-            <button type="button" className={styles.newButton} onClick={handleCreateDocument}>
+          <Card className="rounded-2xl border-dashed border-[#D4DCCC] bg-white/60 p-10 text-center shadow-none">
+            <p className="text-[18px] font-semibold text-[#1A1E1C]">No documents yet</p>
+            <p className="mt-2 text-sm text-[#6C756D]">Create your first document to begin writing.</p>
+            <Button
+              onClick={handleCreateDocument}
+              className="mt-4 rounded-xl bg-[#2F6E1F] text-white hover:bg-[#285E1B]"
+            >
               <Plus size={16} weight="bold" />
               Create document
-            </button>
-          </div>
+            </Button>
+          </Card>
         )}
       </div>
     </section>
@@ -181,11 +233,6 @@ function extractText(node: Record<string, unknown>): string {
   return ''
 }
 
-function getSectionLabel(sectionId: string | null, sections: Section[]) {
-  if (!sectionId) return 'Draft'
-  return sections.find((section) => section.id === sectionId)?.name ?? 'Draft'
-}
-
 function timeAgo(value: Date): string {
   const date = new Date(value)
   const diff = Date.now() - date.getTime()
@@ -197,4 +244,18 @@ function timeAgo(value: Date): string {
   const days = Math.floor(hours / 24)
   if (days < 7) return `Edited ${days}d ago`
   return `Edited ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+}
+
+function inferStatusFromSectionId(sectionId: string | null, sections: Section[]): DashboardStatus {
+  if (!sectionId) return 'draft'
+  const sectionName = sections.find((section) => section.id === sectionId)?.name.toLowerCase() ?? ''
+  const matched = STATUS_BY_SECTION_NAME.find((item) => sectionName.includes(item.key))
+  return matched?.status ?? 'draft'
+}
+
+function statusLabel(status: DashboardStatus) {
+  if (status === 'in_review') return 'In Review'
+  if (status === 'ideas') return 'Ideas'
+  if (status === 'final') return 'Final'
+  return 'Draft'
 }
