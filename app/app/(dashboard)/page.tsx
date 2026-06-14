@@ -74,6 +74,7 @@ export default async function DashboardPage({
     boardSections,
     boardDocuments,
     allDocuments,
+    allSections,
     notesCountRows,
     sourcesLinkedCountRows,
     recentDocuments,
@@ -99,6 +100,7 @@ export default async function DashboardPage({
       .from(documents)
       .where(eq(documents.ownerId, user.id))
       .orderBy(desc(documents.updatedAt)),
+    db.select().from(sections).where(eq(sections.ownerId, user.id)),
     (async () => {
       try {
         return await db
@@ -136,9 +138,13 @@ export default async function DashboardPage({
   const activeBoard = activeBoardRows[0]
   if (!activeBoard) redirect('/app')
 
+  const sectionNameById = new Map(
+    allSections.map((section) => [section.id, section.name.toLowerCase()]),
+  )
+
   const normalizedAllDocuments = allDocuments.map((document) => ({
     ...document,
-    status: normalizeStatus(document.status),
+    status: inferStatusFromSectionName(sectionNameById.get(document.sectionId ?? '') ?? ''),
   }))
 
   const notesCount = Number(notesCountRows[0]?.value ?? 0)
@@ -158,7 +164,9 @@ export default async function DashboardPage({
         sections={boardSections}
         documents={boardDocuments.map((document) => ({
           ...document,
-          status: normalizeStatus(document.status),
+          status: inferStatusFromSectionName(
+            boardSections.find((section) => section.id === document.sectionId)?.name.toLowerCase() ?? '',
+          ),
         }))}
       />
       <StatsPanel
@@ -179,9 +187,9 @@ export default async function DashboardPage({
   )
 }
 
-function normalizeStatus(status: string | null): Exclude<DashboardStatus, 'all'> {
-  if (status === 'ideas') return 'ideas'
-  if (status === 'in_review') return 'in_review'
-  if (status === 'final') return 'final'
+function inferStatusFromSectionName(sectionName: string): Exclude<DashboardStatus, 'all'> {
+  if (sectionName.includes('idea')) return 'ideas'
+  if (sectionName.includes('review')) return 'in_review'
+  if (sectionName.includes('final')) return 'final'
   return 'draft'
 }

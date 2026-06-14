@@ -52,7 +52,6 @@ export const documents = pgTable('documents', {
   length:     text('length').notNull().default('Medium'),
   audience:   text('audience').notNull().default('General'),
   wordCount:  integer('word_count').notNull().default(0),
-  status:     text('status').notNull().default('draft'),
   createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:  timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
