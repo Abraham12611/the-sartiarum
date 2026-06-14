@@ -137,6 +137,17 @@ export function DashboardSidebar({
             <span className="size-3.5 rounded-full bg-[#FEBB2E]" />
             <span className="size-3.5 rounded-full bg-[#28C840]" />
           </div>
+          <div className="hidden group-data-[collapsible=icon]:block">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={toggleSidebar}
+              className="size-7 rounded-md text-[#6A726C] hover:bg-[#F3F0E9]"
+              aria-label="Expand sidebar"
+            >
+              <SidebarSimple size={15} />
+            </Button>
+          </div>
           <Button
             variant="ghost"
             size="icon-sm"

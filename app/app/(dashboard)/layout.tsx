@@ -1,7 +1,7 @@
 import { and, count as dbCount, eq, gte } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { DashboardSidebar } from '@/components/sidebar/Sidebar'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { db } from '@/lib/db'
 import { aiUsage, boards, profiles, spaces, subscriptions } from '@/lib/db/schema'
 import { createClient } from '@/lib/supabase/server'
@@ -50,9 +50,6 @@ export default async function DashboardLayout({
         aiUsageCount={safeAiUsageCount}
       />
       <SidebarInset className="h-screen overflow-hidden bg-[#FBF8F2]">
-        <div className="pointer-events-none absolute left-3 top-3 z-30 hidden md:peer-data-[state=collapsed]:block">
-          <SidebarTrigger className="pointer-events-auto size-8 rounded-lg border border-[#E5DED4] bg-white/90 text-[#4D5650] shadow-sm hover:bg-white" />
-        </div>
         {children}
       </SidebarInset>
     </SidebarProvider>
