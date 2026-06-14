@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -143,20 +144,30 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
           <>
             <Card
               onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}
-              className="grid cursor-pointer overflow-hidden rounded-2xl border-[#E5DED4] bg-white/80 p-0 shadow-none xl:grid-cols-[1fr_300px]"
+              className="relative cursor-pointer overflow-hidden rounded-2xl border-[#E5DED4] bg-white/80 p-0 shadow-none"
             >
-              <div className="p-4">
-                <Badge className="mb-3 rounded-full bg-[#E8F1DC] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#35582F]">
+              <Image
+                src="/view-bg.png"
+                alt=""
+                fill
+                priority={false}
+                aria-hidden
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-white/10" />
+
+              <div className="relative z-10 flex min-h-[175px] flex-col p-4">
+                <Badge className="mb-3 w-fit rounded-full bg-[#E8F1DC]/95 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#35582F]">
                   Current Draft
                 </Badge>
                 <h2 className="mb-1.5 font-[var(--font-newsreader)] text-[24px] leading-[1.08] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[26px]">
                   {featuredDoc.title || 'Untitled'}
                 </h2>
-                <p className="mb-3 max-w-[630px] text-[14px] leading-[1.4] text-[#445049]">
+                <p className="mb-3 max-w-[420px] text-[14px] leading-[1.4] text-[#2F3732]">
                   {extractSnippet(featuredDoc.content, 220) ||
                     'Open this draft to continue shaping your ideas with focus and clarity.'}
                 </p>
-                <div className="flex flex-wrap items-center gap-4 text-[12px] text-[#6A746C]">
+                <div className="mt-auto flex flex-wrap items-center gap-4 text-[12px] text-[#465048]">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="inline-block size-1.5 rounded-full bg-[#4F6F3D]" />
                     {featuredDoc.status === 'draft' ? 'Draft' : statusLabel(featuredDoc.status)}
@@ -165,16 +176,13 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
                   <span>{timeAgo(featuredDoc.updatedAt)}</span>
                 </div>
               </div>
-              <div className="relative min-h-[185px] border-l border-[#EEE5DB] bg-[linear-gradient(136deg,#ECE8E0_0%,#D7D2C7_45%,#B4AD9E_100%)]">
-                <div className="absolute inset-5 rounded-xl border border-white/50 bg-white/10" />
-                <Button
-                  variant="outline"
-                  size="icon-sm"
-                  className="absolute right-3 top-3 size-7 rounded-md border-[#E5DED4] bg-white/75 text-[#5D665E]"
-                >
-                  <DotsThree size={15} weight="bold" />
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="absolute right-3 top-3 z-20 size-7 rounded-md border-[#E5DED4] bg-white/80 text-[#5D665E]"
+              >
+                <DotsThree size={15} weight="bold" />
+              </Button>
             </Card>
 
             {gridDocs.length > 0 ? (
