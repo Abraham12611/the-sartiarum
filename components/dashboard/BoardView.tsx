@@ -86,12 +86,12 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
   }
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-5 pb-4 pt-4 xl:px-8">
-      <header className="mb-4 flex items-center justify-between gap-3">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-6">
+      <header className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
+            className="h-9 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
           >
             {board.name || 'Drafts'}
             <CaretDown size={14} weight="bold" />
@@ -99,22 +99,22 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative w-[220px] xl:w-[250px]">
+          <div className="relative w-[210px] xl:w-[235px]">
             <MagnifyingGlass size={15} className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search"
-              className="h-10 rounded-xl border-[#E5DED4] bg-white/80 pl-9 text-sm"
+              className="h-9 rounded-xl border-[#E5DED4] bg-white/80 pl-9 text-sm"
             />
           </div>
-          <Button variant="outline" size="icon-sm" className="size-10 rounded-xl border-[#E5DED4] bg-white/80 text-[#4D5650]">
+          <Button variant="outline" size="icon-sm" className="size-9 rounded-xl border-[#E5DED4] bg-white/80 text-[#4D5650]">
             <FadersHorizontal size={16} />
           </Button>
           <Button
             onClick={handleCreateDocument}
             disabled={creating}
-            className="h-10 rounded-xl bg-[#2F6E1F] px-4 text-sm font-semibold text-white hover:bg-[#285E1B]"
+            className="h-9 rounded-xl bg-[#2F6E1F] px-4 text-sm font-semibold text-white hover:bg-[#285E1B]"
           >
             <Plus size={16} weight="bold" />
             {creating ? 'Creating...' : 'New'}
@@ -123,11 +123,11 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
         </div>
       </header>
 
-      <div className="mb-3">
-        <h1 className="font-[var(--font-newsreader)] text-[42px] leading-[1.08] font-semibold tracking-[-0.03em] text-[#151817] xl:text-[46px]">
+      <div className="mb-2">
+        <h1 className="font-[var(--font-newsreader)] text-[32px] leading-[1.06] font-semibold tracking-[-0.03em] text-[#151817] xl:text-[34px]">
           Your writing home
         </h1>
-        <p className="mt-1 text-[16px] text-[#4F5963] xl:text-[17px]">
+        <p className="mt-1 text-[15px] text-[#4F5963]">
           Organize drafts, ideas, and projects in one calm space.
         </p>
       </div>
@@ -138,21 +138,21 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
         totalCount={documents.length}
       />
 
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="mt-3 min-h-0 flex-1 overflow-hidden pr-1">
         {featuredDoc ? (
           <>
             <Card
               onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}
-              className="grid cursor-pointer overflow-hidden rounded-2xl border-[#E5DED4] bg-white/80 p-0 shadow-none xl:grid-cols-[1fr_320px]"
+              className="grid cursor-pointer overflow-hidden rounded-2xl border-[#E5DED4] bg-white/80 p-0 shadow-none xl:grid-cols-[1fr_300px]"
             >
-              <div className="p-5">
+              <div className="p-4">
                 <Badge className="mb-3 rounded-full bg-[#E8F1DC] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#35582F]">
                   Current Draft
                 </Badge>
-                <h2 className="mb-2 font-[var(--font-newsreader)] text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[34px]">
+                <h2 className="mb-1.5 font-[var(--font-newsreader)] text-[24px] leading-[1.08] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[26px]">
                   {featuredDoc.title || 'Untitled'}
                 </h2>
-                <p className="mb-4 max-w-[630px] text-[15px] leading-[1.42] text-[#445049] xl:text-[16px]">
+                <p className="mb-3 max-w-[630px] text-[14px] leading-[1.4] text-[#445049]">
                   {extractSnippet(featuredDoc.content, 220) ||
                     'Open this draft to continue shaping your ideas with focus and clarity.'}
                 </p>
@@ -165,7 +165,7 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
                   <span>{timeAgo(featuredDoc.updatedAt)}</span>
                 </div>
               </div>
-              <div className="relative min-h-[220px] border-l border-[#EEE5DB] bg-[linear-gradient(136deg,#ECE8E0_0%,#D7D2C7_45%,#B4AD9E_100%)]">
+              <div className="relative min-h-[185px] border-l border-[#EEE5DB] bg-[linear-gradient(136deg,#ECE8E0_0%,#D7D2C7_45%,#B4AD9E_100%)]">
                 <div className="absolute inset-5 rounded-xl border border-white/50 bg-white/10" />
                 <Button
                   variant="outline"
@@ -178,7 +178,7 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
             </Card>
 
             {gridDocs.length > 0 ? (
-              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
+              <div className="mt-3 grid grid-cols-1 gap-2.5 xl:grid-cols-3">
                 {gridDocs.map((doc) => (
                   <DocCard key={doc.id} doc={doc} />
                 ))}

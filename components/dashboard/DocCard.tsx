@@ -60,10 +60,10 @@ export function DocCard({ doc }: { doc: Doc }) {
               openDocument()
             }
           }}
-          className="rounded-2xl border-[#E5DED4] bg-white/80 p-4 shadow-none transition hover:-translate-y-0.5 hover:border-[#CAD6BF] hover:shadow-[0_10px_26px_rgba(44,39,30,0.08)]"
+          className="rounded-2xl border-[#E5DED4] bg-white/80 p-3.5 shadow-none transition hover:-translate-y-0.5 hover:border-[#CAD6BF] hover:shadow-[0_10px_26px_rgba(44,39,30,0.08)]"
         >
           <div className="mb-2 flex items-start justify-between gap-2">
-            <h3 className="line-clamp-2 font-[var(--font-newsreader)] text-[22px] leading-[1.12] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[24px]">
+            <h3 className="line-clamp-2 font-[var(--font-newsreader)] text-[18px] leading-[1.12] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[20px]">
               {doc.title || 'Untitled'}
             </h3>
 
@@ -82,7 +82,7 @@ export function DocCard({ doc }: { doc: Doc }) {
             </DropdownMenu>
           </div>
 
-          <p className="mb-5 line-clamp-3 text-[13px] leading-[1.45] text-[#4C554E]">
+          <p className="mb-4 line-clamp-3 text-[13px] leading-[1.4] text-[#4C554E]">
             {snippet || 'Open this draft to continue writing.'}
           </p>
 

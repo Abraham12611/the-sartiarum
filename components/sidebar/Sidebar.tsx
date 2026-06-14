@@ -19,7 +19,6 @@ import {
   PushPinSimple,
   SidebarSimple,
   SignOut,
-  SquaresFour,
   Folders,
 } from '@phosphor-icons/react'
 import { signOut } from '@/lib/actions/auth'
@@ -129,9 +128,9 @@ export function DashboardSidebar({
     <Sidebar
       collapsible="icon"
       className="border-r border-[#EDE6DB] bg-[#FCFBF8]"
-      style={{ '--sidebar-width': '19rem' } as React.CSSProperties}
+      style={{ '--sidebar-width': '17.25rem' } as React.CSSProperties}
     >
-      <SidebarHeader className="gap-4 px-4 pt-4 pb-2">
+      <SidebarHeader className="gap-3 px-3.5 pt-3 pb-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="size-3.5 rounded-full bg-[#FF5F57]" />
@@ -156,7 +155,7 @@ export function DashboardSidebar({
             width={170}
             height={44}
             priority
-            className="h-auto w-[170px]"
+            className="h-auto w-[148px]"
           />
         </Link>
 
@@ -166,7 +165,7 @@ export function DashboardSidebar({
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
             placeholder="Search"
-            className="h-11 rounded-2xl border-[#E8E1D7] bg-white pl-9 pr-16 text-sm font-medium text-[#2A2E2B] shadow-none placeholder:text-[#7A8179]"
+            className="h-9 rounded-xl border-[#E8E1D7] bg-white pl-9 pr-14 text-sm font-medium text-[#2A2E2B] shadow-none placeholder:text-[#7A8179]"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium tracking-tight text-[#7C827B]">
             ⌘K
@@ -174,7 +173,7 @@ export function DashboardSidebar({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 pt-1">
+      <SidebarContent className="overflow-hidden px-2 pt-0.5">
         <SidebarGroup className="p-0">
           <SidebarGroupLabel className="px-3 text-xs font-medium uppercase tracking-[0.08em] text-[#71776F]">
             Pinned
@@ -185,7 +184,7 @@ export function DashboardSidebar({
                 <SidebarMenuItem key={board.id}>
                   <SidebarMenuButton
                     isActive={activeBoardId === board.id}
-                    className="h-11 rounded-xl px-3 text-[15px] font-semibold text-[#1D2120] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#1D2120]"
+                    className="h-9 rounded-lg px-3 text-[14px] font-semibold text-[#1D2120] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#1D2120]"
                     render={<Link href={`/app?board=${board.id}`} />}
                   >
                     {iconForBoard(board.name)}
@@ -202,7 +201,7 @@ export function DashboardSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-2 p-0">
+        <SidebarGroup className="mt-1 p-0">
           <SidebarGroupLabel className="px-3 text-xs font-medium uppercase tracking-[0.08em] text-[#71776F]">
             Spaces
           </SidebarGroupLabel>
@@ -212,7 +211,7 @@ export function DashboardSidebar({
                 const isCollapsed = collapsedSpaces.has(space.id)
                 const spaceBoards = getBoardsForSpace(space.id)
                 return (
-                  <div key={space.id} className="mb-2">
+                  <div key={space.id} className="mb-1.5">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -224,7 +223,7 @@ export function DashboardSidebar({
                           return next
                         })
                       }}
-                      className="group-data-[collapsible=icon]:hidden h-10 w-full justify-start gap-1.5 px-3 text-[15px] font-semibold text-[#242927]"
+                      className="group-data-[collapsible=icon]:hidden h-8.5 w-full justify-start gap-1.5 px-3 text-[14px] font-semibold text-[#242927]"
                     >
                       {isCollapsed ? <CaretRight size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}
                       <Folders size={15} />
@@ -232,12 +231,12 @@ export function DashboardSidebar({
                     </Button>
 
                     {!isCollapsed && (
-                      <SidebarMenu className="group-data-[collapsible=icon]:hidden pl-4">
+                      <SidebarMenu className="group-data-[collapsible=icon]:hidden pl-3.5">
                         {spaceBoards.map((board) => (
                           <SidebarMenuItem key={board.id}>
                             <SidebarMenuButton
                               isActive={activeBoardId === board.id}
-                              className="h-10 rounded-xl px-3 text-[14px] font-medium text-[#2B2F2D] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#2F6E1F] data-[active=true]:font-semibold"
+                              className="h-8.5 rounded-lg px-3 text-[13px] font-medium text-[#2B2F2D] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#2F6E1F] data-[active=true]:font-semibold"
                               render={<Link href={`/app?board=${board.id}`} />}
                             >
                               {iconForBoard(board.name)}
@@ -254,7 +253,7 @@ export function DashboardSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <div className="mx-3 mt-2 mb-3 h-px bg-[#ECE5DC] group-data-[collapsible=icon]:hidden" />
+        <div className="mx-3 mt-1 mb-2 h-px bg-[#ECE5DC] group-data-[collapsible=icon]:hidden" />
 
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
@@ -266,7 +265,7 @@ export function DashboardSidebar({
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={active}
-                      className="h-11 rounded-xl px-3 text-[15px] font-semibold text-[#1F2422] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#35582F]"
+                      className="h-9 rounded-lg px-3 text-[14px] font-semibold text-[#1F2422] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#35582F]"
                       render={<Link href={item.href} />}
                     >
                       <Icon size={16} />
@@ -288,20 +287,20 @@ export function DashboardSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-3 pb-3 pt-0">
-        <Card className="rounded-2xl border-[#E8E1D7] bg-white px-3 py-3 shadow-none group-data-[collapsible=icon]:hidden">
-          <div className="mb-3 flex items-center justify-between gap-2">
+      <SidebarFooter className="px-2.5 pb-2.5 pt-0">
+        <Card className="rounded-xl border-[#E8E1D7] bg-white px-3 py-2.5 shadow-none group-data-[collapsible=icon]:hidden">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2.5">
-              <Avatar className="size-9 border border-[#D6DCCF]">
+              <Avatar className="size-8 border border-[#D6DCCF]">
                 <AvatarFallback className="bg-[#35582F] text-xs font-semibold text-white">
                   {createInitials(profile?.displayName)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate text-base font-semibold text-[#161A18]">
+                <p className="truncate text-[15px] font-semibold text-[#161A18]">
                   {profile?.displayName ?? 'Creator plan'}
                 </p>
-                <p className="text-sm text-[#6B726B]">{isTrialing ? 'Creator plan' : 'Pro plan'}</p>
+                <p className="text-xs text-[#6B726B]">{isTrialing ? 'Creator plan' : 'Pro plan'}</p>
               </div>
             </div>
             <Button
@@ -315,11 +314,11 @@ export function DashboardSidebar({
             </Button>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-[#666D66]">
+          <div className="flex items-center justify-between text-[11px] text-[#666D66]">
             <span>{aiUsageCount} AI actions used</span>
             <span>{trialDaysLeft}d left</span>
           </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#ECE8DE]">
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#ECE8DE]">
             <div
               className="h-full rounded-full bg-[#4F6F3D]"
               style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}

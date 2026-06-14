@@ -21,7 +21,7 @@ interface SectionTabsProps {
 
 export function SectionTabs({ activeStatus, onSelect, totalCount }: SectionTabsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       {TABS.map((tab) => (
         <Button
           key={tab.id}
@@ -29,7 +29,7 @@ export function SectionTabs({ activeStatus, onSelect, totalCount }: SectionTabsP
           size="sm"
           onClick={() => onSelect(tab.id)}
           className={[
-            'h-8 rounded-full border-[#E5DED4] bg-white/75 px-3.5 text-[12px] font-semibold text-[#2D322F]',
+            'h-7.5 rounded-full border-[#E5DED4] bg-white/75 px-3 text-[12px] font-semibold text-[#2D322F]',
             activeStatus === tab.id ? 'border-[#9FBA94] bg-[#F6FAF2] text-[#35582F]' : '',
           ].join(' ')}
         >
