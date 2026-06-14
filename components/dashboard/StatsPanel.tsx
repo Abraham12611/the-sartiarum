@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import {
-  CalendarDots,
+  CalendarBlank,
   ClockCounterClockwise,
   FileDoc,
   LinkSimpleHorizontal,
   NotePencil,
   Plus,
   Pulse,
+  TextAlignLeft,
 } from '@phosphor-icons/react'
 import { createDocument } from '@/lib/actions/documents'
 import { Button } from '@/components/ui/button'
@@ -60,69 +61,66 @@ export function StatsPanel({
   }
 
   return (
-    <aside className="hidden h-full w-[300px] shrink-0 overflow-hidden px-3 pb-3 pt-[94px] xl:block">
-      <div className="space-y-3">
-      <Card className="rounded-2xl border-[#E5DED4] bg-white/80 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between pb-2.5">
-          <CardTitle className="font-[var(--font-newsreader)] text-[22px] font-semibold text-[#171B19]">
+    <aside className="hidden h-full w-[288px] shrink-0 xl:flex xl:flex-col xl:gap-3 xl:px-3 xl:pb-3 xl:pt-[84px]">
+      <Card className="rounded-2xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-[29px] font-semibold leading-none tracking-tight text-[#171B19]">
             At a glance
           </CardTitle>
-          <Pulse size={16} className="text-[#6A726B]" />
+          <Pulse size={15} className="text-[#7A817A]" />
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2 pt-0">
-          <StatTile label="Documents" value={documentsCount} icon={<FileDoc size={14} />} />
-          <StatTile label="Notes" value={notesCount} icon={<NotePencil size={14} />} />
-          <StatTile label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={14} />} />
-          <StatTile label="In review" value={inReviewCount} icon={<ClockCounterClockwise size={14} />} />
+        <CardContent className="space-y-3 pt-0">
+          <div className="grid grid-cols-2 gap-3">
+            <AtGlanceItem label="Documents" value={documentsCount} icon={<FileDoc size={13} />} />
+            <AtGlanceItem label="Notes" value={notesCount} icon={<NotePencil size={13} />} />
+            <AtGlanceItem label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={13} />} />
+            <AtGlanceItem label="In review" value={inReviewCount} icon={<ClockCounterClockwise size={13} />} accent="blue" />
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border-[#E5DED4] bg-white/80 shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-[var(--font-newsreader)] text-[20px] leading-[1.05] font-semibold text-[#171B19]">
+      <Card className="rounded-2xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="pb-1.5">
+          <CardTitle className="text-[28px] font-semibold leading-none tracking-tight text-[#171B19]">
             Recent activity
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1.5 pt-0">
           {recentDocuments.length === 0 ? (
-            <p className="text-sm text-[#788179]">No recent edits yet.</p>
+            <p className="text-xs text-[#788179]">No recent edits yet.</p>
           ) : (
-            recentDocuments.slice(0, 4).map((doc) => (
+            recentDocuments.slice(0, 5).map((doc) => (
               <Link
                 key={doc.id}
                 href={`/app/doc/${doc.id}`}
-                className="flex items-start gap-2 rounded-xl border border-[#EEE5DB] bg-white/70 p-2"
+                className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1"
               >
-                <FileDoc size={14} className="mt-0.5 text-[#6B756D]" />
-                <span className="min-w-0">
-                  <strong className="block truncate font-[var(--font-newsreader)] text-[15px] font-semibold leading-[1.15] text-[#1E2321]">
-                    {doc.title || 'Untitled'}
-                  </strong>
-                  <small className="text-[11px] text-[#727A73]">{timeAgo(doc.updatedAt)}</small>
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <TextAlignLeft size={13} className="text-[#616A62]" />
+                  <span className="truncate text-[12px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
                 </span>
+                <span className="shrink-0 text-[11px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
               </Link>
             ))
           )}
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border-[#E5DED4] bg-white/80 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="font-[var(--font-newsreader)] text-[20px] leading-[1] font-semibold text-[#171B19]">
+      <Card className="rounded-2xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between pb-1.5">
+          <CardTitle className="text-[28px] font-semibold leading-none tracking-tight text-[#171B19]">
             Upcoming
           </CardTitle>
-          <CalendarDots size={16} className="text-[#6A726B]" />
+          <CalendarBlank size={14} className="text-[#6E756E]" />
         </CardHeader>
-        <CardContent className="space-y-1.5 pt-0">
+        <CardContent className="space-y-2 pt-0">
           {upcomingTasks.length === 0 ? (
-            <p className="text-sm text-[#788179]">No upcoming items yet.</p>
+            <p className="text-xs text-[#788179]">No upcoming items yet.</p>
           ) : (
             upcomingTasks.slice(0, 2).map((task) => (
-              <div key={task.id} className="rounded-xl border border-[#EEE5DB] bg-white/70 p-2">
-                <p className="font-[var(--font-newsreader)] text-[15px] leading-[1.2] text-[#1F2422]">
-                  {task.title}
-                </p>
-                <small className="text-[11px] text-[#727A73]">{formatUpcoming(task.scheduledFor)}</small>
+              <div key={task.id} className="rounded-lg px-1.5 py-1">
+                <p className="truncate text-[12px] font-medium text-[#202523]">{task.title}</p>
+                <small className="text-[11px] text-[#747B74]">{formatUpcoming(task.scheduledFor)}</small>
               </div>
             ))
           )}
@@ -133,30 +131,36 @@ export function StatsPanel({
         onClick={handleCreateDocument}
         disabled={isPending}
         variant="outline"
-        className="h-10 w-full rounded-xl border-[#BFD0B7] bg-white/70 text-[15px] font-semibold text-[#35582F] hover:bg-[#F1F4EB]"
+        className="h-9 w-full rounded-xl border-[#BFD0B7] bg-white/80 text-[15px] font-semibold text-[#35582F] hover:bg-[#F1F4EB]"
       >
-        <Plus size={16} weight="bold" />
-        {isPending ? 'Creating document...' : 'Create document'}
+        <Plus size={14} weight="bold" />
+        {isPending ? 'Creating...' : 'Create document'}
       </Button>
-      </div>
     </aside>
   )
 }
 
-function StatTile({
+function AtGlanceItem({
   label,
   value,
   icon,
+  accent = 'neutral',
 }: {
   label: string
   value: number
   icon: React.ReactNode
+  accent?: 'neutral' | 'blue'
 }) {
   return (
-    <div className="rounded-xl border border-[#ECE4DA] bg-white/80 p-2">
-      <div className="mb-1 flex items-center justify-between">
-        <p className="text-[16px] leading-[1] font-bold text-[#121614]">{value}</p>
-        <span className="inline-flex size-5 items-center justify-center rounded-md bg-[#F2EFE9] text-[#5F665F]">
+    <div>
+      <div className="mb-0.5 flex items-center justify-between">
+        <p className="text-[24px] leading-none font-semibold text-[#121614]">{value}</p>
+        <span
+          className={[
+            'inline-flex size-5 items-center justify-center rounded-md',
+            accent === 'blue' ? 'bg-[#EDF4FF] text-[#3B82F6]' : 'bg-[#F2EFE9] text-[#5F665F]',
+          ].join(' ')}
+        >
           {icon}
         </span>
       </div>
@@ -169,7 +173,7 @@ function timeAgo(value: Date): string {
   const date = new Date(value)
   const diff = Date.now() - date.getTime()
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'Edited just now'
+  if (minutes < 1) return 'Edited now'
   if (minutes < 60) return `Edited ${minutes}m ago`
   const hours = Math.floor(minutes / 60)
   if (hours < 24) return `Edited ${hours}h ago`
