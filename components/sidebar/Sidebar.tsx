@@ -6,18 +6,21 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import {
   BookOpenText,
+  CalendarBlank,
   CaretDown,
   CaretRight,
   FileText,
   Gear,
+  GraduationCap,
   Lightbulb,
+  ListBullets,
   MagnifyingGlass,
   Note,
-  PencilSimpleLine,
   PushPinSimple,
   SidebarSimple,
   SignOut,
-  Stack,
+  SquaresFour,
+  Folders,
 } from '@phosphor-icons/react'
 import { signOut } from '@/lib/actions/auth'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -25,7 +28,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import {
   Sidebar,
   SidebarContent,
@@ -37,7 +39,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
 
@@ -63,17 +64,10 @@ interface DashboardSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { href: '/app/learn', label: 'Learn', icon: BookOpenText },
-  { href: '/app/plan', label: 'Plan', icon: Stack },
-  { href: '/app/settings/profile', label: 'Settings', icon: Gear },
+  { href: '/app/learn', label: 'Learn', icon: GraduationCap, soon: true },
+  { href: '/app/plan', label: 'Plan', icon: CalendarBlank, soon: true },
+  { href: '/app/settings/profile', label: 'Settings', icon: Gear, soon: false },
 ]
-
-const BOARD_ICON_MAP: Record<string, typeof PencilSimpleLine> = {
-  draft: PencilSimpleLine,
-  essay: FileText,
-  idea: Lightbulb,
-  note: Note,
-}
 
 export function DashboardSidebar({
   spaces,
@@ -89,12 +83,13 @@ export function DashboardSidebar({
   const [searchValue, setSearchValue] = useState('')
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
 
-  const pinnedBoards = boards.filter((board) => board.isPinned)
   const filteredBoards = useMemo(() => {
     if (!searchValue.trim()) return boards
     const q = searchValue.trim().toLowerCase()
     return boards.filter((board) => board.name.toLowerCase().includes(q))
   }, [boards, searchValue])
+
+  const pinnedBoards = filteredBoards.filter((board) => board.isPinned)
 
   const isTrialing = subscription?.status === 'trialing'
   const trialEndsAtMs = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt).getTime() : null
@@ -106,18 +101,8 @@ export function DashboardSidebar({
     return filteredBoards.filter((board) => board.spaceId === spaceId)
   }
 
-  function iconForBoard(boardName: string) {
-    const key = Object.keys(BOARD_ICON_MAP).find((name) => boardName.toLowerCase().includes(name))
-    const Icon = key ? BOARD_ICON_MAP[key] : FileText
-    return <Icon size={16} weight="regular" />
-  }
-
-  async function handleSignOut() {
-    await signOut()
-  }
-
   function createInitials(name: string | null | undefined) {
-    if (!name?.trim()) return 'SA'
+    if (!name?.trim()) return 'IH'
     return name
       .trim()
       .split(/\s+/)
@@ -126,24 +111,38 @@ export function DashboardSidebar({
       .join('')
   }
 
+  function iconForBoard(boardName: string) {
+    const value = boardName.toLowerCase()
+    if (value.includes('draft')) return <FileText size={16} />
+    if (value.includes('research')) return <BookOpenText size={16} />
+    if (value.includes('blog') || value.includes('pipeline') || value.includes('script')) return <ListBullets size={16} />
+    if (value.includes('note')) return <Note size={16} />
+    if (value.includes('idea')) return <Lightbulb size={16} />
+    return <FileText size={16} />
+  }
+
+  async function handleSignOut() {
+    await signOut()
+  }
+
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-[#E5DED4]"
-      style={{ '--sidebar-width': '18.5rem' } as React.CSSProperties}
+      className="border-r border-[#EDE6DB] bg-[#FCFBF8]"
+      style={{ '--sidebar-width': '19rem' } as React.CSSProperties}
     >
-      <SidebarHeader className="gap-3 px-4 pt-4 pb-3">
-        <div className="flex items-center justify-between gap-2">
+      <SidebarHeader className="gap-4 px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded-full bg-[#FF5F57]" />
-            <span className="size-3 rounded-full bg-[#FEBB2E]" />
-            <span className="size-3 rounded-full bg-[#28C840]" />
+            <span className="size-3.5 rounded-full bg-[#FF5F57]" />
+            <span className="size-3.5 rounded-full bg-[#FEBB2E]" />
+            <span className="size-3.5 rounded-full bg-[#28C840]" />
           </div>
           <Button
             variant="ghost"
             size="icon-sm"
             onClick={toggleSidebar}
-            className="size-7 rounded-md text-[#6C746C] group-data-[collapsible=icon]:hidden"
+            className="size-7 rounded-md text-[#6A726C] hover:bg-[#F3F0E9] group-data-[collapsible=icon]:hidden"
             aria-label="Collapse sidebar"
           >
             <SidebarSimple size={15} />
@@ -154,66 +153,57 @@ export function DashboardSidebar({
           <Image
             src="/wordmark-logo.png"
             alt="Sartiarum"
-            width={134}
-            height={34}
+            width={170}
+            height={44}
             priority
-            className="h-auto w-[134px]"
-          />
-        </Link>
-
-        <Link href="/app" className="hidden group-data-[collapsible=icon]:flex">
-          <Image
-            src="/sartiatum-logo-icon.png"
-            alt="Sartiarum"
-            width={24}
-            height={24}
-            priority
-            className="h-6 w-6"
+            className="h-auto w-[170px]"
           />
         </Link>
 
         <div className="relative group-data-[collapsible=icon]:hidden">
-          <MagnifyingGlass size={15} className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A8179]" />
           <Input
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
             placeholder="Search"
-            className="h-9 rounded-xl border-[#E5DED4] bg-white/75 pl-9 pr-14 text-sm"
+            className="h-11 rounded-2xl border-[#E8E1D7] bg-white pl-9 pr-16 text-sm font-medium text-[#2A2E2B] shadow-none placeholder:text-[#7A8179]"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
-            Ctrl+K
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium tracking-tight text-[#7C827B]">
+            ⌘K
           </span>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 pb-3">
-        {pinnedBoards.length > 0 && (
-          <SidebarGroup className="p-0">
-            <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-[0.08em] text-[#6F766F]">
-              Pinned
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {pinnedBoards.map((board) => (
-                  <SidebarMenuItem key={board.id}>
-                    <SidebarMenuButton
-                      isActive={activeBoardId === board.id}
-                      className="h-8 rounded-lg data-[active=true]:bg-[#F1F4EB] data-[active=true]:text-[#35582F]"
-                      render={<Link href={`/app?board=${board.id}`} />}
-                    >
-                      {iconForBoard(board.name)}
-                      <span>{board.name}</span>
-                      <PushPinSimple size={14} className="ml-auto text-[#527A3D]" />
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
+      <SidebarContent className="px-2 pt-1">
         <SidebarGroup className="p-0">
-          <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-[0.08em] text-[#6F766F]">
+          <SidebarGroupLabel className="px-3 text-xs font-medium uppercase tracking-[0.08em] text-[#71776F]">
+            Pinned
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {pinnedBoards.map((board) => (
+                <SidebarMenuItem key={board.id}>
+                  <SidebarMenuButton
+                    isActive={activeBoardId === board.id}
+                    className="h-11 rounded-xl px-3 text-[15px] font-semibold text-[#1D2120] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#1D2120]"
+                    render={<Link href={`/app?board=${board.id}`} />}
+                  >
+                    {iconForBoard(board.name)}
+                    <span>{board.name}</span>
+                    <PushPinSimple
+                      size={15}
+                      className={activeBoardId === board.id ? 'ml-auto text-[#41712F]' : 'ml-auto text-[#838A83]'}
+                      weight={activeBoardId === board.id ? 'fill' : 'regular'}
+                    />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-2 p-0">
+          <SidebarGroupLabel className="px-3 text-xs font-medium uppercase tracking-[0.08em] text-[#71776F]">
             Spaces
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -222,7 +212,7 @@ export function DashboardSidebar({
                 const isCollapsed = collapsedSpaces.has(space.id)
                 const spaceBoards = getBoardsForSpace(space.id)
                 return (
-                  <div key={space.id} className="mb-1">
+                  <div key={space.id} className="mb-2">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -234,19 +224,20 @@ export function DashboardSidebar({
                           return next
                         })
                       }}
-                      className="group-data-[collapsible=icon]:hidden h-8 w-full justify-start gap-1 px-3 text-sm font-semibold text-[#4F5963]"
+                      className="group-data-[collapsible=icon]:hidden h-10 w-full justify-start gap-1.5 px-3 text-[15px] font-semibold text-[#242927]"
                     >
-                      {isCollapsed ? <CaretRight size={12} /> : <CaretDown size={12} />}
+                      {isCollapsed ? <CaretRight size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}
+                      <Folders size={15} />
                       {space.name}
                     </Button>
 
                     {!isCollapsed && (
-                      <SidebarMenu className="group-data-[collapsible=icon]:hidden pl-2">
+                      <SidebarMenu className="group-data-[collapsible=icon]:hidden pl-4">
                         {spaceBoards.map((board) => (
                           <SidebarMenuItem key={board.id}>
                             <SidebarMenuButton
                               isActive={activeBoardId === board.id}
-                              className="h-8 rounded-lg data-[active=true]:bg-[#F1F4EB] data-[active=true]:text-[#35582F]"
+                              className="h-10 rounded-xl px-3 text-[14px] font-medium text-[#2B2F2D] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#2F6E1F] data-[active=true]:font-semibold"
                               render={<Link href={`/app?board=${board.id}`} />}
                             >
                               {iconForBoard(board.name)}
@@ -263,7 +254,7 @@ export function DashboardSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <Separator className="my-3 bg-[#ECE5DC]" />
+        <div className="mx-3 mt-2 mb-3 h-px bg-[#ECE5DC] group-data-[collapsible=icon]:hidden" />
 
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
@@ -275,13 +266,16 @@ export function DashboardSidebar({
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={active}
-                      className="h-8 rounded-lg data-[active=true]:bg-[#F1F4EB] data-[active=true]:text-[#35582F]"
+                      className="h-11 rounded-xl px-3 text-[15px] font-semibold text-[#1F2422] data-[active=true]:bg-[#F3F6EC] data-[active=true]:text-[#35582F]"
                       render={<Link href={item.href} />}
                     >
                       <Icon size={16} />
                       <span>{item.label}</span>
-                      {item.href !== '/app/settings/profile' ? (
-                        <Badge variant="outline" className="ml-auto rounded-full px-2 text-[10px]">
+                      {item.soon ? (
+                        <Badge
+                          variant="outline"
+                          className="ml-auto h-6 rounded-full border-[#E8E2D8] bg-white px-2.5 text-[10px] font-semibold text-[#3B413C]"
+                        >
                           Soon
                         </Badge>
                       ) : null}
@@ -294,44 +288,45 @@ export function DashboardSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-[#ECE5DC] p-3">
-        <Card className="rounded-xl border-[#E5DED4] bg-white p-3 group-data-[collapsible=icon]:p-2">
-          <div className="group-data-[collapsible=icon]:hidden mb-3 flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <Avatar className="size-8 border border-[#D7D9D2]">
-                <AvatarFallback className="bg-[#35582F] text-[11px] text-white">
+      <SidebarFooter className="px-3 pb-3 pt-0">
+        <Card className="rounded-2xl border-[#E8E1D7] bg-white px-3 py-3 shadow-none group-data-[collapsible=icon]:hidden">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <Avatar className="size-9 border border-[#D6DCCF]">
+                <AvatarFallback className="bg-[#35582F] text-xs font-semibold text-white">
                   {createInitials(profile?.displayName)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#1E2220]">
+                <p className="truncate text-base font-semibold text-[#161A18]">
                   {profile?.displayName ?? 'Creator plan'}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {isTrialing ? 'Creator plan' : 'Pro plan'}
-                </p>
+                <p className="text-sm text-[#6B726B]">{isTrialing ? 'Creator plan' : 'Pro plan'}</p>
               </div>
             </div>
-            <Button size="icon-sm" variant="ghost" onClick={handleSignOut} className="size-7">
-              <SignOut size={15} />
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={handleSignOut}
+              className="size-7 rounded-md text-[#252A27]"
+              aria-label="Sign out"
+            >
+              <SignOut size={14} />
             </Button>
           </div>
 
-          <div className="group-data-[collapsible=icon]:hidden space-y-1">
-            <div className="flex items-center justify-between text-[11px] text-[#677067]">
-              <span>{aiUsageCount} AI actions used</span>
-              <span>{trialDaysLeft}d left</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[#EAE5DA]">
-              <div
-                className="h-full rounded-full bg-[#4F6F3D]"
-                style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}
-              />
-            </div>
+          <div className="flex items-center justify-between text-xs text-[#666D66]">
+            <span>{aiUsageCount} AI actions used</span>
+            <span>{trialDaysLeft}d left</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#ECE8DE]">
+            <div
+              className="h-full rounded-full bg-[#4F6F3D]"
+              style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}
+            />
           </div>
         </Card>
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }

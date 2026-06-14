@@ -8,14 +8,12 @@ import {
   FadersHorizontal,
   MagnifyingGlass,
   Plus,
-  SidebarSimple,
 } from '@phosphor-icons/react'
 import { createDocument } from '@/lib/actions/documents'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { useSidebar } from '@/components/ui/sidebar'
 import { DocCard } from './DocCard'
 import { DashboardStatus, SectionTabs } from './SectionTabs'
 
@@ -47,7 +45,6 @@ const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus }> = 
 
 export function BoardView({ board, sections, documents }: BoardViewProps) {
   const router = useRouter()
-  const { toggleSidebar } = useSidebar()
   const [activeStatus, setActiveStatus] = useState<DashboardStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [creating, setCreating] = useState(false)
@@ -92,14 +89,6 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-5 pb-4 pt-4 xl:px-8">
       <header className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            className="size-8 rounded-lg border-[#E5DED4] bg-white/80 text-[#4D5650]"
-            onClick={toggleSidebar}
-          >
-            <SidebarSimple size={17} />
-          </Button>
           <Button
             variant="outline"
             className="h-10 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
