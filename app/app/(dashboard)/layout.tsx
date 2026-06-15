@@ -1,13 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { and, count as dbCount, eq, gte } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
+import { DashboardSidebar } from '@/components/sidebar/Sidebar'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { db } from '@/lib/db'
-import { spaces, boards, profiles, subscriptions, aiUsage } from '@/lib/db/schema'
-import { eq, and, gte, count as dbCount } from 'drizzle-orm'
-import { Sidebar } from '@/components/sidebar/Sidebar'
+import { aiUsage, boards, profiles, spaces, subscriptions } from '@/lib/db/schema'
+import { createClient } from '@/lib/supabase/server'
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -17,22 +24,34 @@ export default async function DashboardLayout({ children }: { children: React.Re
     db.select().from(boards).where(eq(boards.ownerId, user.id)).orderBy(boards.sortOrder),
     db.select().from(profiles).where(eq(profiles.id, user.id)).limit(1),
     db.select().from(subscriptions).where(eq(subscriptions.ownerId, user.id)).limit(1),
-    db.select({ value: dbCount() }).from(aiUsage).where(
-      and(eq(aiUsage.ownerId, user.id), gte(aiUsage.createdAt, thirtyDaysAgo))
-    ),
+    db
+      .select({ value: dbCount() })
+      .from(aiUsage)
+      .where(and(eq(aiUsage.ownerId, user.id), gte(aiUsage.createdAt, thirtyDaysAgo))),
   ])
 
+  const safeAiUsageCount = Number(usageCount[0]?.value ?? 0)
+  const subscription = subData[0]
+    ? {
+        ...subData[0],
+        trialEndsAt: subData[0].trialEndsAt
+          ? new Date(subData[0].trialEndsAt).toISOString()
+          : null,
+      }
+    : null
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#fff', fontFamily: 'Inter, sans-serif' }}>
-      <Sidebar
+    <SidebarProvider defaultOpen>
+      <DashboardSidebar
         spaces={spacesData}
         boards={boardsData}
         profile={profileData[0] ?? null}
-        subscription={subData[0] ?? null}
-        aiUsageCount={usageCount[0]?.value ?? 0}
-        userId={user.id}
+        subscription={subscription}
+        aiUsageCount={safeAiUsageCount}
       />
-      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>{children}</main>
-    </div>
+      <SidebarInset className="h-screen overflow-hidden bg-[#FBF8F2]">
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

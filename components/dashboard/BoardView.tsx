@@ -1,16 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import Image from 'next/image'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import {
+  CaretDown,
+  DotsThree,
+  FadersHorizontal,
+  MagnifyingGlass,
+  Plus,
+} from '@phosphor-icons/react'
 import { createDocument } from '@/lib/actions/documents'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { DocCard } from './DocCard'
-import { SectionTabs } from './SectionTabs'
+import { DashboardStatus, SectionTabs } from './SectionTabs'
 
 type Section = { id: string; name: string; sortOrder: number }
 type Document = {
-  id: string; title: string; content: unknown; wordCount: number
-  sectionId: string | null; updatedAt: Date; createdAt: Date
+  id: string
+  title: string
+  content: unknown
+  wordCount: number
+  sectionId: string | null
+  status: DashboardStatus
+  updatedAt: Date
+  createdAt: Date
 }
 type Board = { id: string; name: string; icon: string | null }
 
@@ -18,124 +35,187 @@ interface BoardViewProps {
   board: Board
   sections: Section[]
   documents: Document[]
-  userId: string
 }
 
-export function BoardView({ board, sections, documents, userId }: BoardViewProps) {
+const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus }> = [
+  { key: 'idea', status: 'ideas' },
+  { key: 'review', status: 'in_review' },
+  { key: 'final', status: 'final' },
+  { key: 'draft', status: 'draft' },
+]
+
+export function BoardView({ board, sections, documents }: BoardViewProps) {
   const router = useRouter()
-  const [activeSection, setActiveSection] = useState<string | null>(null)
+  const [activeStatus, setActiveStatus] = useState<DashboardStatus>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [creating, setCreating] = useState(false)
 
-  const filteredDocs = activeSection
-    ? documents.filter(d => d.sectionId === activeSection)
-    : documents
+  const defaultDraftSectionId = useMemo(
+    () =>
+      sections.find((section) => section.name.toLowerCase().includes('draft'))?.id ??
+      sections[0]?.id,
+    [sections],
+  )
+
+  const filteredDocs = documents
+    .map((doc) => ({
+      ...doc,
+      status: doc.status ?? inferStatusFromSectionId(doc.sectionId, sections),
+    }))
+    .filter((doc) => {
+      if (activeStatus === 'all') return true
+      return doc.status === activeStatus
+    })
+    .filter((doc) => {
+      if (!searchQuery.trim()) return true
+      const text = `${doc.title} ${extractSnippet(doc.content, 180)}`.toLowerCase()
+      return text.includes(searchQuery.trim().toLowerCase())
+    })
 
   const featuredDoc = filteredDocs[0]
   const gridDocs = filteredDocs.slice(1)
 
-  async function handleNewDocument() {
+  async function handleCreateDocument() {
+    if (creating) return
     setCreating(true)
     try {
-      const doc = await createDocument(board.id, sections[1]?.id)
-      router.push(`/app/doc/${doc.id}`)
+      const document = await createDocument(board.id, defaultDraftSectionId)
+      router.push(`/app/doc/${document.id}`)
     } finally {
       setCreating(false)
     }
   }
 
   return (
-    <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', fontFamily: 'Inter, sans-serif' }}>
-      {/* Board header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px 0', borderBottom: '1px solid #ede8e1', paddingBottom: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 18 }}>{board.icon ?? '📝'}</span>
-          <h1 style={{ fontSize: 16, fontWeight: 700, color: '#141516', margin: 0 }}>{board.name}</h1>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-5 2xl:px-6">
+      <header className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="h-9 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
+          >
+            {board.name || 'Drafts'}
+            <CaretDown size={14} weight="bold" />
+          </Button>
         </div>
-        <button
-          onClick={handleNewDocument}
-          disabled={creating}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 9, background: '#4F6F3D', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(79,111,61,0.25)' }}
-        >
-          <Plus size={14} />
-          {creating ? 'Creating…' : 'New'}
-        </button>
-      </div>
 
-      {/* Section tabs */}
-      <div style={{ padding: '0 28px', borderBottom: '1px solid #ede8e1' }}>
-        <SectionTabs
-          sections={sections}
-          activeSection={activeSection}
-          onSelect={setActiveSection}
-          totalCount={documents.length}
-        />
-      </div>
-
-      {/* Content */}
-      <div style={{ padding: '24px 28px' }}>
-        {filteredDocs.length === 0 ? (
-          // Empty state
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 16 }}>
-            <div style={{ fontSize: 36 }}>✍️</div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: '#141516', margin: 0 }}>No documents here yet</p>
-            <p style={{ fontSize: 13.5, color: '#9AA4A0', margin: 0 }}>Create your first document to get started.</p>
-            <button
-              onClick={handleNewDocument}
-              disabled={creating}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 18px', borderRadius: 10, background: '#4F6F3D', color: '#fff', fontSize: 13.5, fontWeight: 600, border: 'none', cursor: 'pointer', marginTop: 4 }}
-            >
-              <Plus size={14} />
-              Create document
-            </button>
+        <div className="flex items-center gap-2">
+          <div className="relative w-[210px] xl:w-[235px]">
+            <MagnifyingGlass size={15} className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <Input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search"
+              className="h-9 rounded-xl border-[#E5DED4] bg-white/80 pl-9 text-sm"
+            />
           </div>
-        ) : (
+          <Button variant="outline" size="icon-sm" className="size-9 rounded-xl border-[#E5DED4] bg-white/80 text-[#4D5650]">
+            <FadersHorizontal size={16} />
+          </Button>
+          <Button
+            onClick={handleCreateDocument}
+            disabled={creating}
+            className="h-9 rounded-xl bg-[#2F6E1F] px-4 text-sm font-semibold text-white hover:bg-[#285E1B]"
+          >
+            <Plus size={16} weight="bold" />
+            {creating ? 'Creating...' : 'New'}
+            <CaretDown size={14} weight="bold" />
+          </Button>
+        </div>
+      </header>
+
+      <div className="mb-2">
+        <h1 className="font-[var(--font-newsreader)] text-[32px] leading-[1.06] font-semibold tracking-[-0.03em] text-[#151817] xl:text-[34px]">
+          Your writing home
+        </h1>
+        <p className="mt-1 text-[15px] text-[#4F5963]">
+          Organize drafts, ideas, and projects in one calm space.
+        </p>
+      </div>
+
+      <SectionTabs
+        activeStatus={activeStatus}
+        onSelect={setActiveStatus}
+        totalCount={documents.length}
+      />
+
+      <div className="mt-3 min-h-0 flex-1 overflow-hidden pr-1">
+        {featuredDoc ? (
           <>
-            {/* Featured doc — hero card */}
-            {featuredDoc && (
-              <div
-                onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}
-                style={{ background: '#FAF7F0', borderRadius: 16, padding: '24px 28px', marginBottom: 20, cursor: 'pointer', border: '1px solid #ede8e1', transition: 'box-shadow 0.15s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.07)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, background: '#eef2e9', color: '#4F6F3D', padding: '3px 9px', borderRadius: 20 }}>CURRENT DRAFT</span>
-                </div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#141516', margin: '0 0 8px', letterSpacing: '-0.02em', lineHeight: 1.3 }}>
+            <Card
+              onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}
+              className="relative cursor-pointer overflow-hidden rounded-2xl border-[#E5DED4] bg-white/80 p-0 shadow-none"
+            >
+              <Image
+                src="/view-bg.png"
+                alt=""
+                fill
+                priority={false}
+                aria-hidden
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-white/10" />
+
+              <div className="relative z-10 flex min-h-[175px] flex-col p-4">
+                <Badge className="mb-3 w-fit rounded-full bg-[#E8F1DC]/95 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#35582F]">
+                  Current Draft
+                </Badge>
+                <h2 className="mb-1.5 font-[var(--font-newsreader)] text-[24px] leading-[1.08] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[26px]">
                   {featuredDoc.title || 'Untitled'}
                 </h2>
-                <p style={{ fontSize: 13.5, color: '#4F5963', margin: '0 0 14px', lineHeight: 1.6 }}>
-                  {extractSnippet(featuredDoc.content, 160)}
+                <p className="mb-3 max-w-[420px] text-[14px] leading-[1.4] text-[#2F3732]">
+                  {extractSnippet(featuredDoc.content, 220) ||
+                    'Open this draft to continue shaping your ideas with focus and clarity.'}
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, color: '#9AA4A0' }}>
-                  <span>{getSectionName(featuredDoc.sectionId, sections)}</span>
-                  <span>·</span>
+                <div className="mt-auto flex flex-wrap items-center gap-4 text-[12px] text-[#465048]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block size-1.5 rounded-full bg-[#4F6F3D]" />
+                    {featuredDoc.status === 'draft' ? 'Draft' : statusLabel(featuredDoc.status)}
+                  </span>
                   <span>{featuredDoc.wordCount.toLocaleString()} words</span>
-                  <span>·</span>
                   <span>{timeAgo(featuredDoc.updatedAt)}</span>
                 </div>
               </div>
-            )}
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="absolute right-3 top-3 z-20 size-7 rounded-md border-[#E5DED4] bg-white/80 text-[#5D665E]"
+              >
+                <DotsThree size={15} weight="bold" />
+              </Button>
+            </Card>
 
-            {/* Document grid */}
-            {gridDocs.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
-                {gridDocs.map(doc => (
-                  <DocCard key={doc.id} doc={doc} sections={sections} boardId={board.id} />
+            {gridDocs.length > 0 ? (
+              <div className="mt-3 grid grid-cols-1 gap-2.5 xl:grid-cols-3">
+                {gridDocs.map((doc) => (
+                  <DocCard key={doc.id} doc={doc} />
                 ))}
               </div>
-            )}
+            ) : null}
           </>
+        ) : (
+          <Card className="rounded-2xl border-dashed border-[#D4DCCC] bg-white/60 p-10 text-center shadow-none">
+            <p className="text-[18px] font-semibold text-[#1A1E1C]">No documents yet</p>
+            <p className="mt-2 text-sm text-[#6C756D]">Create your first document to begin writing.</p>
+            <Button
+              onClick={handleCreateDocument}
+              className="mt-4 rounded-xl bg-[#2F6E1F] text-white hover:bg-[#285E1B]"
+            >
+              <Plus size={16} weight="bold" />
+              Create document
+            </Button>
+          </Card>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 
 function extractSnippet(content: unknown, maxLen: number): string {
   try {
-    const text = extractText(content as Record<string, unknown>)
-    return text.slice(0, maxLen) + (text.length > maxLen ? '…' : '')
+    const text = extractText(content as Record<string, unknown>).replace(/\s+/g, ' ').trim()
+    if (!text) return ''
+    return text.length > maxLen ? `${text.slice(0, maxLen)}...` : text
   } catch {
     return ''
   }
@@ -150,20 +230,29 @@ function extractText(node: Record<string, unknown>): string {
   return ''
 }
 
-function getSectionName(sectionId: string | null, sections: Section[]): string {
-  if (!sectionId) return 'Unsorted'
-  return sections.find(s => s.id === sectionId)?.name ?? 'Unsorted'
+function timeAgo(value: Date): string {
+  const date = new Date(value)
+  const diff = Date.now() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return 'Edited just now'
+  if (minutes < 60) return `Edited ${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Edited ${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `Edited ${days}d ago`
+  return `Edited ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
-function timeAgo(date: Date): string {
-  const now = Date.now()
-  const diff = now - new Date(date).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function inferStatusFromSectionId(sectionId: string | null, sections: Section[]): DashboardStatus {
+  if (!sectionId) return 'draft'
+  const sectionName = sections.find((section) => section.id === sectionId)?.name.toLowerCase() ?? ''
+  const matched = STATUS_BY_SECTION_NAME.find((item) => sectionName.includes(item.key))
+  return matched?.status ?? 'draft'
+}
+
+function statusLabel(status: DashboardStatus) {
+  if (status === 'in_review') return 'In Review'
+  if (status === 'ideas') return 'Ideas'
+  if (status === 'final') return 'Final'
+  return 'Draft'
 }

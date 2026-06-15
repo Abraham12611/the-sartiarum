@@ -1,4 +1,5 @@
 import { type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
@@ -6,7 +7,7 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   } catch {
     // Never let a middleware crash return 500 to every visitor.
-    return Response.next()
+    return NextResponse.next()
   }
 }
 

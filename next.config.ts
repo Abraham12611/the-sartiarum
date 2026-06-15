@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
     // during active development.
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 }
 
 export default nextConfig

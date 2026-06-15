@@ -1,98 +1,191 @@
+'use client'
+
 import Link from 'next/link'
-import { FileText, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
+import {
+  CalendarBlank,
+  ClockCounterClockwise,
+  FileDoc,
+  LinkSimpleHorizontal,
+  NotePencil,
+  Plus,
+  Pulse,
+} from '@phosphor-icons/react'
+import { createDocument } from '@/lib/actions/documents'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-type Doc = { id: string; title: string; wordCount: number; updatedAt: Date }
+type RecentDocument = {
+  id: string
+  title: string
+  updatedAt: Date
+}
 
-export function StatsPanel({ totalDocuments, recentDocuments }: { totalDocuments: number; recentDocuments: Doc[] }) {
+type UpcomingTask = {
+  id: string
+  title: string
+  scheduledFor: Date
+}
+
+interface StatsPanelProps {
+  documentsCount: number
+  notesCount: number
+  sourcesLinkedCount: number
+  inReviewCount: number
+  recentDocuments: RecentDocument[]
+  upcomingTasks: UpcomingTask[]
+  boardId: string
+  defaultSectionId?: string
+}
+
+export function StatsPanel({
+  documentsCount,
+  notesCount,
+  sourcesLinkedCount,
+  inReviewCount,
+  recentDocuments,
+  upcomingTasks,
+  boardId,
+  defaultSectionId,
+}: StatsPanelProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  function handleCreateDocument() {
+    startTransition(async () => {
+      const doc = await createDocument(boardId, defaultSectionId)
+      router.push(`/app/doc/${doc.id}`)
+    })
+  }
+
   return (
-    <aside
-      style={{
-        width: 260,
-        flexShrink: 0,
-        borderLeft: '1px solid #ede8e1',
-        overflowY: 'auto',
-        padding: '24px 20px',
-        fontFamily: 'Inter, sans-serif',
-        background: '#faf9f7',
-      }}
-    >
-      {/* At a glance */}
-      <h2 style={{ fontSize: 11, fontWeight: 700, color: '#9AA4A0', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14, margin: '0 0 14px' }}>At a glance</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
-        <div style={{ background: '#fff', border: '1px solid #ede8e1', borderRadius: 12, padding: '14px 14px' }}>
-          <p style={{ fontSize: 24, fontWeight: 800, color: '#141516', margin: '0 0 2px', letterSpacing: '-0.04em' }}>{totalDocuments}</p>
-          <p style={{ fontSize: 12, color: '#9AA4A0', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <FileText size={11} /> Documents
-          </p>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #ede8e1', borderRadius: 12, padding: '14px 14px' }}>
-          <p style={{ fontSize: 24, fontWeight: 800, color: '#141516', margin: '0 0 2px', letterSpacing: '-0.04em' }}>
-            {recentDocuments.filter(d => {
-              const diff = Date.now() - new Date(d.updatedAt).getTime()
-              return diff < 7 * 24 * 60 * 60 * 1000
-            }).length}
-          </p>
-          <p style={{ fontSize: 12, color: '#9AA4A0', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Clock size={11} /> This week
-          </p>
-        </div>
-      </div>
+    <aside className="hidden h-full w-[272px] shrink-0 xl:flex xl:flex-col xl:gap-2.5 xl:px-2.5 xl:pb-2.5 xl:pt-[74px]">
+      <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between px-4 pt-3 pb-1.5">
+          <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
+            At a glance
+          </CardTitle>
+          <Pulse size={13} className="text-[#7A817A]" />
+        </CardHeader>
+        <CardContent className="space-y-2.5 px-4 pt-0 pb-3">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-2">
+            <AtGlanceItem label="Documents" value={documentsCount} icon={<FileDoc size={13} />} />
+            <AtGlanceItem label="Notes" value={notesCount} icon={<NotePencil size={13} />} />
+            <AtGlanceItem label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={13} />} />
+            <AtGlanceItem label="In review" value={inReviewCount} icon={<ClockCounterClockwise size={13} />} accent="blue" />
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Recent activity */}
-      <h2 style={{ fontSize: 11, fontWeight: 700, color: '#9AA4A0', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Recent activity</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-        {recentDocuments.length === 0 ? (
-          <p style={{ fontSize: 13, color: '#9AA4A0' }}>No documents yet.</p>
-        ) : (
-          recentDocuments.slice(0, 5).map(doc => (
-            <Link
-              key={doc.id}
-              href={`/app/doc/${doc.id}`}
-              style={{ textDecoration: 'none', display: 'block', padding: '8px 10px', borderRadius: 9, background: '#fff', border: '1px solid #ede8e1' }}
-            >
-              <p style={{ fontSize: 12.5, fontWeight: 600, color: '#141516', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {doc.title || 'Untitled'}
-              </p>
-              <p style={{ fontSize: 11, color: '#9AA4A0', margin: 0 }}>
-                {doc.wordCount > 0 ? `${doc.wordCount} words · ` : ''}{timeAgo(doc.updatedAt)}
-              </p>
-            </Link>
-          ))
-        )}
-      </div>
+      <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="px-4 pt-3 pb-1">
+          <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
+            Recent activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1 px-4 pt-0 pb-3">
+          {recentDocuments.length === 0 ? (
+            <p className="text-xs text-[#788179]">No recent edits yet.</p>
+          ) : (
+            recentDocuments.slice(0, 5).map((doc) => (
+              <Link
+                key={doc.id}
+                href={`/app/doc/${doc.id}`}
+                className="flex items-center justify-between gap-2 rounded-md px-0.5 py-0.5"
+              >
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <FileDoc size={12} className="text-[#616A62]" />
+                  <span className="truncate text-[11px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
+                </span>
+                <span className="shrink-0 text-[10px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
+              </Link>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Create new */}
-      <Link
-        href="/app"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 40,
-          borderRadius: 11,
-          border: '1.5px dashed #c8d6be',
-          color: '#4F6F3D',
-          fontSize: 13,
-          fontWeight: 600,
-          textDecoration: 'none',
-          gap: 6,
-          transition: 'background 0.12s',
-        }}
+      <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between px-4 pt-3 pb-1">
+          <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
+            Upcoming
+          </CardTitle>
+          <CalendarBlank size={13} className="text-[#6E756E]" />
+        </CardHeader>
+        <CardContent className="space-y-1 px-4 pt-0 pb-3">
+          {upcomingTasks.length === 0 ? (
+            <p className="text-[11px] text-[#788179]">No upcoming items yet.</p>
+          ) : (
+            upcomingTasks.slice(0, 2).map((task) => (
+              <div key={task.id} className="rounded-md px-0.5 py-0.5">
+                <p className="truncate text-[11px] font-medium text-[#202523]">{task.title}</p>
+                <small className="text-[10px] text-[#747B74]">{formatUpcoming(task.scheduledFor)}</small>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Button
+        onClick={handleCreateDocument}
+        disabled={isPending}
+        variant="outline"
+        className="h-8.5 w-full rounded-xl border-[#BFD0B7] bg-white/80 text-[13px] font-semibold text-[#35582F] hover:bg-[#F1F4EB]"
       >
-        + Create document
-      </Link>
+        <Plus size={12} weight="bold" />
+        {isPending ? 'Creating...' : 'Create document'}
+      </Button>
     </aside>
   )
 }
 
-function timeAgo(date: Date): string {
-  const diff = Date.now() - new Date(date).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 7) return `${d}d ago`
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function AtGlanceItem({
+  label,
+  value,
+  icon,
+  accent = 'neutral',
+}: {
+  label: string
+  value: number
+  icon: React.ReactNode
+  accent?: 'neutral' | 'blue'
+}) {
+  return (
+    <div>
+      <div className="mb-0.5 flex items-center justify-between">
+        <p className="text-[17px] leading-none font-semibold text-[#121614]">{value}</p>
+        <span
+          className={[
+            'inline-flex size-4.5 items-center justify-center rounded-sm',
+            accent === 'blue' ? 'bg-[#EDF4FF] text-[#3B82F6]' : 'bg-[#F2EFE9] text-[#5F665F]',
+          ].join(' ')}
+        >
+          {icon}
+        </span>
+      </div>
+      <span className="text-[10px] text-[#5E675F]">{label}</span>
+    </div>
+  )
+}
+
+function timeAgo(value: Date): string {
+  const date = new Date(value)
+  const diff = Date.now() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return 'Edited now'
+  if (minutes < 60) return `Edited ${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Edited ${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `Edited ${days}d ago`
+}
+
+function formatUpcoming(value: Date): string {
+  const date = new Date(value)
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }

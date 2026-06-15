@@ -1,117 +1,149 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Trash2, ExternalLink } from 'lucide-react'
+import { DotsThree, FolderOpen, Trash } from '@phosphor-icons/react'
 import { deleteDocument } from '@/lib/actions/documents'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import type { DashboardStatus } from './SectionTabs'
 
-type Section = { id: string; name: string }
 type Doc = {
-  id: string; title: string; content: unknown; wordCount: number
-  sectionId: string | null; updatedAt: Date
+  id: string
+  title: string
+  content: unknown
+  wordCount: number
+  status: DashboardStatus
+  updatedAt: Date
 }
 
-export function DocCard({ doc, sections, boardId }: { doc: Doc; sections: Section[]; boardId: string }) {
+export function DocCard({ doc }: { doc: Doc }) {
   const router = useRouter()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const snippet = useMemo(() => extractSnippet(doc.content, 105), [doc.content])
+  const status = getStatusStyle(doc.status)
 
-  const sectionName = doc.sectionId ? sections.find(s => s.id === doc.sectionId)?.name ?? '' : ''
-  const snippet = extractSnippet(doc.content, 100)
-
-  async function handleDelete(e: React.MouseEvent) {
-    e.stopPropagation()
+  async function handleDelete() {
     if (!confirm(`Delete "${doc.title || 'Untitled'}"? This cannot be undone.`)) return
     setDeleting(true)
     await deleteDocument(doc.id)
     router.refresh()
   }
 
-  return (
-    <div
-      onClick={() => !deleting && router.push(`/app/doc/${doc.id}`)}
-      style={{
-        background: '#fff',
-        border: '1px solid #ede8e1',
-        borderRadius: 14,
-        padding: '18px 18px',
-        cursor: 'pointer',
-        position: 'relative',
-        opacity: deleting ? 0.5 : 1,
-        transition: 'box-shadow 0.15s',
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 14px rgba(0,0,0,0.07)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
-    >
-      {/* Context menu */}
-      <div style={{ position: 'absolute', top: 12, right: 12 }}>
-        <button
-          onClick={e => { e.stopPropagation(); setMenuOpen(m => !m) }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9AA4A0', display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6 }}
-        >
-          <MoreHorizontal size={15} />
-        </button>
-        {menuOpen && (
-          <div
-            style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', border: '1px solid #ede8e1', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', minWidth: 160, zIndex: 100, overflow: 'hidden' }}
-            onMouseLeave={() => setMenuOpen(false)}
-          >
-            <button
-              onClick={e => { e.stopPropagation(); router.push(`/app/doc/${doc.id}`) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: '#141516', textAlign: 'left' }}
-            >
-              <ExternalLink size={13} /> Open
-            </button>
-            <button
-              onClick={handleDelete}
-              style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: '#dc2626', textAlign: 'left' }}
-            >
-              <Trash2 size={13} /> Delete
-            </button>
-          </div>
-        )}
-      </div>
+  const openDocument = () => {
+    if (!deleting) router.push(`/app/doc/${doc.id}`)
+  }
 
-      <h3 style={{ fontSize: 14.5, fontWeight: 700, color: '#141516', margin: '0 0 6px', paddingRight: 24, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {doc.title || 'Untitled'}
-      </h3>
-      {snippet && (
-        <p style={{ fontSize: 12.5, color: '#4F5963', margin: '0 0 12px', lineHeight: 1.55, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {snippet}
-        </p>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, color: '#9AA4A0', flexWrap: 'wrap' }}>
-        {sectionName && <span style={{ background: '#f0ede8', color: '#4F5963', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>{sectionName}</span>}
-        <span>{doc.wordCount > 0 ? `${doc.wordCount.toLocaleString()} words` : 'Empty'}</span>
-        <span>·</span>
-        <span>{timeAgo(doc.updatedAt)}</span>
-      </div>
-    </div>
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={openDocument}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              openDocument()
+            }
+          }}
+          className="rounded-2xl border-[#E5DED4] bg-white/80 p-3.5 shadow-none transition hover:-translate-y-0.5 hover:border-[#CAD6BF] hover:shadow-[0_10px_26px_rgba(44,39,30,0.08)]"
+        >
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <h3 className="line-clamp-2 font-[var(--font-newsreader)] text-[18px] leading-[1.12] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[20px]">
+              {doc.title || 'Untitled'}
+            </h3>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="size-7 shrink-0 rounded-md text-[#6C746C]"><DotsThree size={18} weight="bold" /></Button>} />
+              <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuItem onSelect={openDocument}>
+                  <FolderOpen size={14} />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleDelete} className="text-[#b42318] focus:text-[#b42318]">
+                  <Trash size={14} />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <p className="mb-4 line-clamp-3 text-[13px] leading-[1.4] text-[#4C554E]">
+            {snippet || 'Open this draft to continue writing.'}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3 text-[12px] text-[#6B756D]">
+            <Badge variant="outline" className="h-6 rounded-full border-[#E5DED4] bg-white px-2 text-[11px] font-medium">
+              <span className="mr-1 inline-block size-1.5 rounded-full" style={{ backgroundColor: status.dot }} />
+              {status.label}
+            </Badge>
+            <span>{doc.wordCount.toLocaleString()} words</span>
+            <span>{timeAgo(doc.updatedAt)}</span>
+          </div>
+        </Card>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-40">
+        <ContextMenuItem onSelect={openDocument}>
+          <FolderOpen size={14} />
+          Open
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={handleDelete} className="text-[#b42318] focus:text-[#b42318]">
+          <Trash size={14} />
+          Delete
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
 function extractSnippet(content: unknown, maxLen: number): string {
   try {
-    const text = extractText(content as Record<string, unknown>)
-    return text.slice(0, maxLen) + (text.length > maxLen ? '…' : '')
-  } catch { return '' }
+    const text = extractText(content as Record<string, unknown>).replace(/\s+/g, ' ').trim()
+    if (!text) return ''
+    return text.length > maxLen ? `${text.slice(0, maxLen)}...` : text
+  } catch {
+    return ''
+  }
 }
 
 function extractText(node: Record<string, unknown>): string {
   if (!node) return ''
   if (typeof node.text === 'string') return node.text
-  if (Array.isArray(node.content)) return (node.content as Record<string, unknown>[]).map(extractText).join(' ')
+  if (Array.isArray(node.content)) {
+    return (node.content as Record<string, unknown>[]).map(extractText).join(' ')
+  }
   return ''
 }
 
-function timeAgo(date: Date): string {
-  const diff = Date.now() - new Date(date).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 7) return `${d}d ago`
-  return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function timeAgo(value: Date): string {
+  const date = new Date(value)
+  const diff = Date.now() - date.getTime()
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return 'Edited just now'
+  if (minutes < 60) return `Edited ${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Edited ${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `Edited ${days}d ago`
+}
+
+function getStatusStyle(status: DashboardStatus) {
+  if (status === 'in_review') return { label: 'In Review', dot: '#F4B400' }
+  if (status === 'ideas') return { label: 'Ideas', dot: '#3B82F6' }
+  if (status === 'final') return { label: 'Final', dot: '#7C3AED' }
+  return { label: 'Draft', dot: '#4F6F3D' }
 }

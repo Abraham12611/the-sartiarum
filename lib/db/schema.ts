@@ -56,6 +56,33 @@ export const documents = pgTable('documents', {
   updatedAt:  timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const notes = pgTable('notes', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ownerId:    uuid('owner_id').notNull(),
+  boardId:    uuid('board_id'),
+  title:      text('title').notNull().default('Untitled note'),
+  content:    text('content').notNull().default(''),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:  timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const sources = pgTable('sources', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ownerId:    uuid('owner_id').notNull(),
+  boardId:    uuid('board_id'),
+  title:      text('title').notNull(),
+  url:        text('url'),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const documentSourceLinks = pgTable('document_source_links', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ownerId:    uuid('owner_id').notNull(),
+  documentId: uuid('document_id').notNull(),
+  sourceId:   uuid('source_id').notNull(),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const documentVersions = pgTable('document_versions', {
   id:          uuid('id').primaryKey().defaultRandom(),
   documentId:  uuid('document_id').notNull(),
@@ -85,4 +112,13 @@ export const aiUsage = pgTable('ai_usage', {
   tokensOut:  integer('tokens_out').default(0),
   model:      text('model'),
   createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const upcomingTasks = pgTable('upcoming_tasks', {
+  id:            uuid('id').primaryKey().defaultRandom(),
+  ownerId:       uuid('owner_id').notNull(),
+  title:         text('title').notNull(),
+  scheduledFor:  timestamp('scheduled_for', { withTimezone: true }).notNull(),
+  documentId:    uuid('document_id'),
+  createdAt:     timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
