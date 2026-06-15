@@ -69,6 +69,12 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
     if (!deleting && !busy) router.push(`/app/doc/${doc.id}`)
   }
 
+  function handleCardClick(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement
+    if (target.closest('[data-doc-card-menu="true"]')) return
+    openDocument()
+  }
+
   async function handleRenameSubmit() {
     if (deleting || busy) return
     const value = renameValue.trim()
@@ -104,7 +110,7 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
         <Card
           role="button"
           tabIndex={0}
-          onClick={openDocument}
+          onClick={handleCardClick}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
@@ -119,6 +125,7 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
             </h3>
 
             <div
+              data-doc-card-menu="true"
               onClick={(event) => event.stopPropagation()}
               onMouseDown={(event) => event.stopPropagation()}
             >
@@ -129,6 +136,7 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
                     variant="ghost"
                     size="icon-sm"
                     className="size-7 shrink-0 rounded-md text-[#6C746C]"
+                    data-doc-card-menu="true"
                     onClick={(event) => event.stopPropagation()}
                     onMouseDown={(event) => event.stopPropagation()}
                   >
