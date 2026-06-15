@@ -7,12 +7,21 @@ import { deleteDocument, moveDocumentToBoard, renameDocument } from '@/lib/actio
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +49,8 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [renameValue, setRenameValue] = useState(doc.title || 'Untitled')
   const snippet = useMemo(() => extractSnippet(doc.content, 105), [doc.content])
   const status = getStatusStyle(doc.status)
 
@@ -58,13 +69,17 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
     if (!deleting && !busy) router.push(`/app/doc/${doc.id}`)
   }
 
-  async function handleRename() {
+  async function handleRenameSubmit() {
     if (deleting || busy) return
-    const value = window.prompt('Rename document', doc.title || 'Untitled')
-    if (!value || value.trim() === doc.title) return
+    const value = renameValue.trim()
+    if (!value || value === doc.title) {
+      setRenameOpen(false)
+      return
+    }
     setBusy(true)
     try {
-      await renameDocument(doc.id, value.trim())
+      await renameDocument(doc.id, value)
+      setRenameOpen(false)
       router.refresh()
     } finally {
       setBusy(false)
@@ -83,7 +98,8 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
   }
 
   return (
-    <ContextMenu>
+    <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <ContextMenu>
       <ContextMenuTrigger>
         <Card
           role="button"
@@ -102,6 +118,10 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
               {doc.title || 'Untitled'}
             </h3>
 
+            <div
+              onClick={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -109,6 +129,8 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
                     variant="ghost"
                     size="icon-sm"
                     className="size-7 shrink-0 rounded-md text-[#6C746C]"
+                    onClick={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
                   >
                     <DotsThree size={18} weight="bold" />
                   </Button>
@@ -119,7 +141,13 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
                   <FolderOpen size={14} />
                   Open
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleRename} disabled={busy || deleting}>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setRenameValue(doc.title || 'Untitled')
+                    setRenameOpen(true)
+                  }}
+                  disabled={busy || deleting}
+                >
                   <PencilSimple size={14} />
                   Rename
                 </DropdownMenuItem>
@@ -151,6 +179,7 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           </div>
 
           <p className="mb-4 line-clamp-3 text-[13px] leading-[1.4] text-[#4C554E]">
@@ -172,7 +201,13 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
           <FolderOpen size={14} />
           Open
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleRename} disabled={busy || deleting}>
+        <ContextMenuItem
+          onSelect={() => {
+            setRenameValue(doc.title || 'Untitled')
+            setRenameOpen(true)
+          }}
+          disabled={busy || deleting}
+        >
           <PencilSimple size={14} />
           Rename
         </ContextMenuItem>
@@ -195,7 +230,37 @@ export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[]
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
-    </ContextMenu>
+      </ContextMenu>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename document</DialogTitle>
+          <DialogDescription>Update the document title shown in your board and writer.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            void handleRenameSubmit()
+          }}
+          className="mt-4 space-y-3"
+        >
+          <Input
+            value={renameValue}
+            onChange={(event) => setRenameValue(event.target.value)}
+            placeholder="Document title"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy || !renameValue.trim()}>
+              {busy ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

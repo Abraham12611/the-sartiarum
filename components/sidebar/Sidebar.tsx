@@ -32,6 +32,14 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -93,6 +101,10 @@ export function DashboardSidebar({
   const [searchValue, setSearchValue] = useState('')
   const [modalQuery, setModalQuery] = useState('')
   const [searchModalOpen, setSearchModalOpen] = useState(false)
+  const [createBoardOpen, setCreateBoardOpen] = useState(false)
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false)
+  const [newBoardName, setNewBoardName] = useState('')
+  const [newSpaceName, setNewSpaceName] = useState('')
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
   const [isPending, startTransition] = useTransition()
 
@@ -159,21 +171,33 @@ export function DashboardSidebar({
   }
 
   function handleCreateBoardFromSidebar() {
+    setNewBoardName('')
+    setCreateBoardOpen(true)
+  }
+
+  function handleCreateSpaceFromSidebar() {
+    setNewSpaceName('')
+    setCreateSpaceOpen(true)
+  }
+
+  function submitCreateBoard() {
     const targetSpaceId = resolveTargetBoard()?.spaceId ?? spaces[0]?.id
     if (!targetSpaceId) return
-    const name = window.prompt('New board name', 'Untitled Board')
-    if (!name || !name.trim()) return
+    const name = newBoardName.trim()
+    if (!name) return
     startTransition(async () => {
-      const board = await createBoard(targetSpaceId, name.trim())
+      const board = await createBoard(targetSpaceId, name)
+      setCreateBoardOpen(false)
       router.push(`/app?board=${board.id}`)
     })
   }
 
-  function handleCreateSpaceFromSidebar() {
-    const name = window.prompt('New space name', 'New Space')
-    if (!name || !name.trim()) return
+  function submitCreateSpace() {
+    const name = newSpaceName.trim()
+    if (!name) return
     startTransition(async () => {
-      await createSpace(name.trim())
+      await createSpace(name)
+      setCreateSpaceOpen(false)
       router.refresh()
     })
   }
@@ -194,11 +218,13 @@ export function DashboardSidebar({
   }, [])
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-[#EDE6DB] bg-[#FCFBF8]"
-      style={{ '--sidebar-width': '17.25rem' } as React.CSSProperties}
-    >
+    <Dialog open={createBoardOpen} onOpenChange={setCreateBoardOpen}>
+      <Dialog open={createSpaceOpen} onOpenChange={setCreateSpaceOpen}>
+        <Sidebar
+          collapsible="icon"
+          className="border-r border-[#EDE6DB] bg-[#FCFBF8]"
+          style={{ '--sidebar-width': '17.25rem' } as React.CSSProperties}
+        >
       <SidebarHeader className="gap-3 px-3.5 pt-3 pb-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
@@ -479,6 +505,66 @@ export function DashboardSidebar({
           </div>
         </div>
       ) : null}
-    </Sidebar>
+        </Sidebar>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new board</DialogTitle>
+            <DialogDescription>Add a new board inside your current space.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitCreateBoard()
+            }}
+            className="mt-4 space-y-3"
+          >
+            <Input
+              value={newBoardName}
+              onChange={(event) => setNewBoardName(event.target.value)}
+              placeholder="Board name"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateBoardOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !newBoardName.trim()}>
+                {isPending ? 'Creating...' : 'Create board'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new space</DialogTitle>
+            <DialogDescription>Create a fresh workspace space for your boards.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitCreateSpace()
+            }}
+            className="mt-4 space-y-3"
+          >
+            <Input
+              value={newSpaceName}
+              onChange={(event) => setNewSpaceName(event.target.value)}
+              placeholder="Space name"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateSpaceOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !newSpaceName.trim()}>
+                {isPending ? 'Creating...' : 'Create space'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Dialog>
   )
 }
