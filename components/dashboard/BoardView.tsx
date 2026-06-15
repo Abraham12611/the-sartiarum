@@ -87,7 +87,7 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
   }
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-6">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-5 2xl:px-6">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button

@@ -158,7 +158,7 @@ export default async function DashboardPage({
     boardSections[0]?.id
 
   return (
-    <div className="grid h-full min-h-0 w-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid h-full min-h-0 w-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_272px] xl:gap-x-5 xl:px-3">
       <BoardView
         board={activeBoard}
         sections={boardSections}
