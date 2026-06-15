@@ -11,7 +11,6 @@ import {
   NotePencil,
   Plus,
   Pulse,
-  TextAlignLeft,
 } from '@phosphor-icons/react'
 import { createDocument } from '@/lib/actions/documents'
 import { Button } from '@/components/ui/button'
@@ -61,16 +60,16 @@ export function StatsPanel({
   }
 
   return (
-    <aside className="hidden h-full w-[288px] shrink-0 xl:flex xl:flex-col xl:gap-3 xl:px-3 xl:pb-3 xl:pt-[84px]">
-      <Card className="rounded-2xl border-[#E5DED4] bg-white/85 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-[29px] font-semibold leading-none tracking-tight text-[#171B19]">
+    <aside className="hidden h-full w-[272px] shrink-0 xl:flex xl:flex-col xl:gap-2.5 xl:px-2.5 xl:pb-2.5 xl:pt-[74px]">
+      <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between px-4 pt-3 pb-1.5">
+          <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
             At a glance
           </CardTitle>
-          <Pulse size={15} className="text-[#7A817A]" />
+          <Pulse size={13} className="text-[#7A817A]" />
         </CardHeader>
-        <CardContent className="space-y-3 pt-0">
-          <div className="grid grid-cols-2 gap-3">
+        <CardContent className="space-y-2.5 px-4 pt-0 pb-3">
+          <div className="grid grid-cols-2 gap-x-2 gap-y-2">
             <AtGlanceItem label="Documents" value={documentsCount} icon={<FileDoc size={13} />} />
             <AtGlanceItem label="Notes" value={notesCount} icon={<NotePencil size={13} />} />
             <AtGlanceItem label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={13} />} />
@@ -79,13 +78,13 @@ export function StatsPanel({
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border-[#E5DED4] bg-white/85 shadow-none">
-        <CardHeader className="pb-1.5">
-          <CardTitle className="text-[28px] font-semibold leading-none tracking-tight text-[#171B19]">
+      <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="px-4 pt-3 pb-1">
+          <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
             Recent activity
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1.5 pt-0">
+        <CardContent className="space-y-1 px-4 pt-0 pb-3">
           {recentDocuments.length === 0 ? (
             <p className="text-xs text-[#788179]">No recent edits yet.</p>
           ) : (
@@ -93,34 +92,34 @@ export function StatsPanel({
               <Link
                 key={doc.id}
                 href={`/app/doc/${doc.id}`}
-                className="flex items-center justify-between gap-2 rounded-lg px-1.5 py-1"
+                className="flex items-center justify-between gap-2 rounded-md px-0.5 py-0.5"
               >
                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <TextAlignLeft size={13} className="text-[#616A62]" />
-                  <span className="truncate text-[12px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
+                  <FileDoc size={12} className="text-[#616A62]" />
+                  <span className="truncate text-[11px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
                 </span>
-                <span className="shrink-0 text-[11px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
+                <span className="shrink-0 text-[10px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
               </Link>
             ))
           )}
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl border-[#E5DED4] bg-white/85 shadow-none">
-        <CardHeader className="flex flex-row items-center justify-between pb-1.5">
-          <CardTitle className="text-[28px] font-semibold leading-none tracking-tight text-[#171B19]">
+      <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between px-4 pt-3 pb-1">
+          <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
             Upcoming
           </CardTitle>
-          <CalendarBlank size={14} className="text-[#6E756E]" />
+          <CalendarBlank size={13} className="text-[#6E756E]" />
         </CardHeader>
-        <CardContent className="space-y-2 pt-0">
+        <CardContent className="space-y-1 px-4 pt-0 pb-3">
           {upcomingTasks.length === 0 ? (
-            <p className="text-xs text-[#788179]">No upcoming items yet.</p>
+            <p className="text-[11px] text-[#788179]">No upcoming items yet.</p>
           ) : (
             upcomingTasks.slice(0, 2).map((task) => (
-              <div key={task.id} className="rounded-lg px-1.5 py-1">
-                <p className="truncate text-[12px] font-medium text-[#202523]">{task.title}</p>
-                <small className="text-[11px] text-[#747B74]">{formatUpcoming(task.scheduledFor)}</small>
+              <div key={task.id} className="rounded-md px-0.5 py-0.5">
+                <p className="truncate text-[11px] font-medium text-[#202523]">{task.title}</p>
+                <small className="text-[10px] text-[#747B74]">{formatUpcoming(task.scheduledFor)}</small>
               </div>
             ))
           )}
@@ -131,9 +130,9 @@ export function StatsPanel({
         onClick={handleCreateDocument}
         disabled={isPending}
         variant="outline"
-        className="h-9 w-full rounded-xl border-[#BFD0B7] bg-white/80 text-[15px] font-semibold text-[#35582F] hover:bg-[#F1F4EB]"
+        className="h-8.5 w-full rounded-xl border-[#BFD0B7] bg-white/80 text-[13px] font-semibold text-[#35582F] hover:bg-[#F1F4EB]"
       >
-        <Plus size={14} weight="bold" />
+        <Plus size={12} weight="bold" />
         {isPending ? 'Creating...' : 'Create document'}
       </Button>
     </aside>
@@ -154,17 +153,17 @@ function AtGlanceItem({
   return (
     <div>
       <div className="mb-0.5 flex items-center justify-between">
-        <p className="text-[24px] leading-none font-semibold text-[#121614]">{value}</p>
+        <p className="text-[17px] leading-none font-semibold text-[#121614]">{value}</p>
         <span
           className={[
-            'inline-flex size-5 items-center justify-center rounded-md',
+            'inline-flex size-4.5 items-center justify-center rounded-sm',
             accent === 'blue' ? 'bg-[#EDF4FF] text-[#3B82F6]' : 'bg-[#F2EFE9] text-[#5F665F]',
           ].join(' ')}
         >
           {icon}
         </span>
       </div>
-      <span className="text-[11px] text-[#5E675F]">{label}</span>
+      <span className="text-[10px] text-[#5E675F]">{label}</span>
     </div>
   )
 }
