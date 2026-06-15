@@ -33,6 +33,7 @@ type Board = { id: string; name: string; icon: string | null }
 
 interface BoardViewProps {
   board: Board
+  allBoards: Board[]
   sections: Section[]
   documents: Document[]
 }
@@ -44,7 +45,7 @@ const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus }> = 
   { key: 'draft', status: 'draft' },
 ]
 
-export function BoardView({ board, sections, documents }: BoardViewProps) {
+export function BoardView({ board, allBoards, sections, documents }: BoardViewProps) {
   const router = useRouter()
   const [activeStatus, setActiveStatus] = useState<DashboardStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -188,7 +189,7 @@ export function BoardView({ board, sections, documents }: BoardViewProps) {
             {gridDocs.length > 0 ? (
               <div className="mt-3 grid grid-cols-1 gap-2.5 xl:grid-cols-3">
                 {gridDocs.map((doc) => (
-                  <DocCard key={doc.id} doc={doc} />
+                  <DocCard key={doc.id} doc={doc} allBoards={allBoards} />
                 ))}
               </div>
             ) : null}

@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import {
   BookOpenText,
   CalendarBlank,
@@ -20,8 +20,12 @@ import {
   SidebarSimple,
   SignOut,
   Folders,
+  Plus,
 } from '@phosphor-icons/react'
 import { signOut } from '@/lib/actions/auth'
+import { createBoard } from '@/lib/actions/boards'
+import { createDocument } from '@/lib/actions/documents'
+import { createSpace } from '@/lib/actions/spaces'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -40,6 +44,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 type Space = { id: string; name: string; sortOrder: number }
 type Board = {
@@ -75,12 +85,16 @@ export function DashboardSidebar({
   subscription,
   aiUsageCount,
 }: DashboardSidebarProps) {
+  const router = useRouter()
   const { toggleSidebar } = useSidebar()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const activeBoardId = searchParams.get('board')
   const [searchValue, setSearchValue] = useState('')
+  const [modalQuery, setModalQuery] = useState('')
+  const [searchModalOpen, setSearchModalOpen] = useState(false)
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
+  const [isPending, startTransition] = useTransition()
 
   const filteredBoards = useMemo(() => {
     if (!searchValue.trim()) return boards
@@ -89,6 +103,12 @@ export function DashboardSidebar({
   }, [boards, searchValue])
 
   const pinnedBoards = filteredBoards.filter((board) => board.isPinned)
+
+  const modalBoards = useMemo(() => {
+    if (!modalQuery.trim()) return boards
+    const q = modalQuery.trim().toLowerCase()
+    return boards.filter((board) => board.name.toLowerCase().includes(q))
+  }, [boards, modalQuery])
 
   const isTrialing = subscription?.status === 'trialing'
   const trialEndsAtMs = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt).getTime() : null
@@ -123,6 +143,55 @@ export function DashboardSidebar({
   async function handleSignOut() {
     await signOut()
   }
+
+  function resolveTargetBoard() {
+    if (activeBoardId) return boards.find((board) => board.id === activeBoardId) ?? boards[0]
+    return boards.find((board) => board.isPinned) ?? boards[0]
+  }
+
+  function handleCreateDocumentFromSidebar() {
+    const targetBoard = resolveTargetBoard()
+    if (!targetBoard) return
+    startTransition(async () => {
+      const doc = await createDocument(targetBoard.id)
+      router.push(`/app/doc/${doc.id}`)
+    })
+  }
+
+  function handleCreateBoardFromSidebar() {
+    const targetSpaceId = resolveTargetBoard()?.spaceId ?? spaces[0]?.id
+    if (!targetSpaceId) return
+    const name = window.prompt('New board name', 'Untitled Board')
+    if (!name || !name.trim()) return
+    startTransition(async () => {
+      const board = await createBoard(targetSpaceId, name.trim())
+      router.push(`/app?board=${board.id}`)
+    })
+  }
+
+  function handleCreateSpaceFromSidebar() {
+    const name = window.prompt('New space name', 'New Space')
+    if (!name || !name.trim()) return
+    startTransition(async () => {
+      await createSpace(name.trim())
+      router.refresh()
+    })
+  }
+
+  useEffect(() => {
+    function onKeydown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchModalOpen(true)
+      }
+      if (event.key === 'Escape') {
+        setSearchModalOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', onKeydown)
+    return () => window.removeEventListener('keydown', onKeydown)
+  }, [])
 
   return (
     <Sidebar
@@ -175,12 +244,34 @@ export function DashboardSidebar({
           <Input
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
+            onFocus={() => setSearchModalOpen(true)}
             placeholder="Search"
             className="h-9 rounded-xl border-[#E8E1D7] bg-white pl-9 pr-14 text-sm font-medium text-[#2A2E2B] shadow-none placeholder:text-[#7A8179]"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium tracking-tight text-[#7C827B]">
-            ⌘K
+            Ctrl+K
           </span>
+        </div>
+
+        <div className="group-data-[collapsible=icon]:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  className="h-9 w-full rounded-xl bg-[#2f6e1f] text-sm font-semibold text-white hover:bg-[#285e1b]"
+                  disabled={isPending}
+                >
+                  <Plus size={15} weight="bold" />
+                  {isPending ? 'Working...' : 'New'}
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuItem onSelect={handleCreateDocumentFromSidebar}>New document</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleCreateBoardFromSidebar}>New board</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleCreateSpaceFromSidebar}>New space</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </SidebarHeader>
 
@@ -337,6 +428,57 @@ export function DashboardSidebar({
           </div>
         </Card>
       </SidebarFooter>
+
+      {searchModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 px-4 pt-24"
+          onClick={() => setSearchModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-[#e5ded4] bg-white p-3 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="relative">
+              <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A8179]" />
+              <Input
+                autoFocus
+                value={modalQuery}
+                onChange={(event) => setModalQuery(event.target.value)}
+                placeholder="Search boards..."
+                className="h-10 rounded-xl border-[#E8E1D7] bg-white pl-9 text-sm font-medium text-[#2A2E2B]"
+              />
+            </div>
+
+            <div className="mt-3 max-h-72 overflow-y-auto">
+              {modalBoards.length === 0 ? (
+                <div className="rounded-lg px-3 py-6 text-center text-sm text-[#6a726c]">
+                  No matching boards found.
+                </div>
+              ) : (
+                modalBoards.map((board) => (
+                  <button
+                    key={board.id}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-[#212624] hover:bg-[#f5f2eb]"
+                    onClick={() => {
+                      setSearchModalOpen(false)
+                      setModalQuery('')
+                      router.push(`/app?board=${board.id}`)
+                    }}
+                  >
+                    <span>{board.name}</span>
+                    <span className="text-xs text-[#7b837c]">Open</span>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between px-1 text-xs text-[#7c837c]">
+              <span>Use Ctrl/Cmd + K to open</span>
+              <span>Esc to close</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </Sidebar>
   )
 }

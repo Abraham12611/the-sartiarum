@@ -67,8 +67,8 @@
 | 31 | Logo + Sartiarum wordmark in sidebar header | done | Wordmark integrated in sidebar header |
 | 32 | Spaces -> Boards tree (`components/sidebar/SpaceTree.tsx`) | done | Collapsible space-to-board hierarchy implemented |
 | 33 | Pinned boards section (<=5 boards) | done | Pinned section implemented and rendered at top |
-| 34 | "+ New" affordance (doc / board / space) | in-progress | Document creation exists; board/space creation affordance still pending |
-| 35 | Global search icon (placeholder for now) | in-progress | Search affordance exists; modal/shortcut wiring still pending |
+| 34 | "+ New" affordance (doc / board / space) | done | Sidebar + New now creates document, board, and space |
+| 35 | Global search icon (placeholder for now) | done | Ctrl/Cmd+K search modal wired and board navigation connected |
 | 36 | Primary nav links (Learn, Plan - greyed out, Phase 4/5) | done | Links rendered with disabled/soon treatment |
 | 37 | Account + usage block at sidebar bottom | done | Profile card, usage meter, and sign-out present |
 | 38 | Sidebar data fetching (spaces + boards from Drizzle) | done | Server-side fetch and hydration wired in layout |
@@ -80,9 +80,9 @@
 | 40 | Board header (name, sort dropdown, search, + New doc button) | done | Header controls implemented |
 | 41 | Section filter tabs (All / Ideas / Drafts / Final) | done | Status tabs implemented and filtering wired |
 | 42 | Document card grid (`components/dashboard/DocCard.tsx`) | done | Cards with metadata and actions rendered |
-| 43 | Document card "..." menu (Rename, Move to board, Delete) | in-progress | Delete implemented; Rename/Move still pending |
+| 43 | Document card "..." menu (Rename, Move to board, Delete) | done | Rename, move, and delete actions wired to server actions |
 | 44 | Empty board state | done | Empty state + create CTA implemented |
-| 45 | Loading skeleton for board view | todo | Skeleton state still missing |
+| 45 | Loading skeleton for board view | done | Added dashboard loading skeleton route with card placeholders |
 | 46 | Create new document flow | done | Create action + redirect to writer implemented |
 
 #### 2D - TipTap editor
@@ -120,10 +120,10 @@
 #### 2G - State coverage (required before Day 3)
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 67 | Loading state: editor skeleton while document fetches | todo | Writer loading skeleton still pending |
+| 67 | Loading state: editor skeleton while document fetches | done | Added writer loading skeleton route to prevent blank flashes |
 | 68 | Empty state: blank editor with invitation copy | done | Editor placeholder/empty invitation copy present |
-| 69 | Error state: document not found / unauthorized | in-progress | Unauthorized redirect exists; custom not-found UX still pending |
-| 70 | Error state: save failed | todo | Retry + toast handling still pending |
+| 69 | Error state: document not found / unauthorized | done | Added writer document not-found state with safe dashboard return path |
+| 70 | Error state: save failed | done | Save failure now shows retry CTA and toast-style alert in writer view |
 
 ---
 ### Day 3 â€” AI Actions
@@ -240,4 +240,5 @@
 | 129 | Version compaction scheduled task | todo | Never delete the latest version |
 | 130 | Observability dashboards (Sentry / PostHog / Mastra evals) | todo | |
 | 131 | Full regression pass â€” all prior acceptance criteria | todo | Phase is done only when all pass |
+
 

@@ -14,7 +14,9 @@ interface WriterTopBarProps {
   title: string
   onTitleChange: (t: string) => void
   saveStatus: SaveStatus
+  saveError: string | null
   onSave: () => void
+  onRetrySave: () => void
   focusMode: boolean
   onToggleFocusMode: () => void
   onToggleVersionHistory: () => void
@@ -22,7 +24,7 @@ interface WriterTopBarProps {
 
 export function WriterTopBar({
   documentId, title, onTitleChange, saveStatus, focusMode,
-  onToggleFocusMode, onToggleVersionHistory,
+  onToggleFocusMode, onToggleVersionHistory, saveError, onRetrySave,
 }: WriterTopBarProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -86,6 +88,25 @@ export function WriterTopBar({
 
       {/* Save status */}
       <span style={{ fontSize: 12, fontWeight: 500, color: saveColor, flexShrink: 0 }}>{saveLabel}</span>
+      {saveError ? (
+        <button
+          onClick={onRetrySave}
+          style={{
+            height: 28,
+            padding: '0 10px',
+            borderRadius: 8,
+            border: '1px solid #f3d3cd',
+            background: '#fff5f3',
+            color: '#b42318',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+          title={saveError}
+        >
+          Save failed - Retry
+        </button>
+      ) : null}
 
       {/* Actions */}
       <button

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { documents, documentVersions } from '@/lib/db/schema'
+import { documents, documentVersions, sections } from '@/lib/db/schema'
 import { and, eq, desc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 
@@ -88,6 +88,38 @@ export async function updateDocumentTitle(id: string, title: string) {
     .update(documents)
     .set({ title, updatedAt: new Date() })
     .where(and(eq(documents.id, id), eq(documents.ownerId, user.id)))
+  revalidatePath(`/app/doc/${id}`)
+}
+
+export async function renameDocument(id: string, title: string) {
+  const normalized = title.trim()
+  if (!normalized) throw new Error('Document title cannot be empty')
+  await updateDocumentTitle(id, normalized)
+}
+
+export async function moveDocumentToBoard(id: string, targetBoardId: string) {
+  const user = await requireUser()
+
+  const targetSections = await db
+    .select()
+    .from(sections)
+    .where(and(eq(sections.ownerId, user.id), eq(sections.boardId, targetBoardId)))
+    .orderBy(sections.sortOrder)
+
+  const fallbackSection =
+    targetSections.find((section) => section.name.toLowerCase().includes('draft')) ??
+    targetSections[0]
+
+  await db
+    .update(documents)
+    .set({
+      boardId: targetBoardId,
+      sectionId: fallbackSection?.id ?? null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(documents.id, id), eq(documents.ownerId, user.id)))
+
+  revalidatePath('/app')
   revalidatePath(`/app/doc/${id}`)
 }
 

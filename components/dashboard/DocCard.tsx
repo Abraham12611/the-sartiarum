@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { DotsThree, FolderOpen, Trash } from '@phosphor-icons/react'
-import { deleteDocument } from '@/lib/actions/documents'
+import { DotsThree, FolderOpen, PencilSimple, Swap, Trash } from '@phosphor-icons/react'
+import { deleteDocument, moveDocumentToBoard, renameDocument } from '@/lib/actions/documents'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -17,6 +17,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DashboardStatus } from './SectionTabs'
@@ -30,21 +34,52 @@ type Doc = {
   updatedAt: Date
 }
 
-export function DocCard({ doc }: { doc: Doc }) {
+type BoardTarget = { id: string; name: string }
+
+export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[] }) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
+  const [busy, setBusy] = useState(false)
   const snippet = useMemo(() => extractSnippet(doc.content, 105), [doc.content])
   const status = getStatusStyle(doc.status)
 
   async function handleDelete() {
     if (!confirm(`Delete "${doc.title || 'Untitled'}"? This cannot be undone.`)) return
     setDeleting(true)
-    await deleteDocument(doc.id)
-    router.refresh()
+    try {
+      await deleteDocument(doc.id)
+      router.refresh()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const openDocument = () => {
-    if (!deleting) router.push(`/app/doc/${doc.id}`)
+    if (!deleting && !busy) router.push(`/app/doc/${doc.id}`)
+  }
+
+  async function handleRename() {
+    if (deleting || busy) return
+    const value = window.prompt('Rename document', doc.title || 'Untitled')
+    if (!value || value.trim() === doc.title) return
+    setBusy(true)
+    try {
+      await renameDocument(doc.id, value.trim())
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleMoveToBoard(boardId: string) {
+    if (deleting || busy || boardId === '') return
+    setBusy(true)
+    try {
+      await moveDocumentToBoard(doc.id, boardId)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -68,13 +103,49 @@ export function DocCard({ doc }: { doc: Doc }) {
             </h3>
 
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="size-7 shrink-0 rounded-md text-[#6C746C]"><DotsThree size={18} weight="bold" /></Button>} />
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-7 shrink-0 rounded-md text-[#6C746C]"
+                  >
+                    <DotsThree size={18} weight="bold" />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end" className="w-36">
                 <DropdownMenuItem onSelect={openDocument}>
                   <FolderOpen size={14} />
                   Open
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleDelete} className="text-[#b42318] focus:text-[#b42318]">
+                <DropdownMenuItem onSelect={handleRename} disabled={busy || deleting}>
+                  <PencilSimple size={14} />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={busy || deleting}>
+                    <Swap size={14} />
+                    Move to board
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-48">
+                    {allBoards.map((board) => (
+                      <DropdownMenuItem
+                        key={board.id}
+                        onSelect={() => handleMoveToBoard(board.id)}
+                        disabled={busy || deleting}
+                      >
+                        {board.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={handleDelete}
+                  className="text-[#b42318] focus:text-[#b42318]"
+                  disabled={busy || deleting}
+                >
                   <Trash size={14} />
                   Delete
                 </DropdownMenuItem>
@@ -101,7 +172,25 @@ export function DocCard({ doc }: { doc: Doc }) {
           <FolderOpen size={14} />
           Open
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleDelete} className="text-[#b42318] focus:text-[#b42318]">
+        <ContextMenuItem onSelect={handleRename} disabled={busy || deleting}>
+          <PencilSimple size={14} />
+          Rename
+        </ContextMenuItem>
+        {allBoards.map((board) => (
+          <ContextMenuItem
+            key={board.id}
+            onSelect={() => handleMoveToBoard(board.id)}
+            disabled={busy || deleting}
+          >
+            <Swap size={14} />
+            Move: {board.name}
+          </ContextMenuItem>
+        ))}
+        <ContextMenuItem
+          onSelect={handleDelete}
+          className="text-[#b42318] focus:text-[#b42318]"
+          disabled={busy || deleting}
+        >
           <Trash size={14} />
           Delete
         </ContextMenuItem>

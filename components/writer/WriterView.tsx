@@ -27,12 +27,19 @@ export function WriterView({ document }: { document: Document }) {
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
     startTransition(async () => {
-      await saveDocument(document.id, content, wordCount)
-      setSaveStatus('saved')
+      try {
+        await saveDocument(document.id, content, wordCount)
+        setSaveStatus('saved')
+        setSaveError(null)
+      } catch {
+        setSaveStatus('unsaved')
+        setSaveError('We could not save your changes. Check your connection and retry.')
+      }
     })
   }, [document.id, content, wordCount])
 
@@ -40,6 +47,7 @@ export function WriterView({ document }: { document: Document }) {
     setContent(newContent)
     setWordCount(newWordCount)
     setSaveStatus('unsaved')
+    setSaveError(null)
   }, [])
 
   return (
@@ -50,7 +58,9 @@ export function WriterView({ document }: { document: Document }) {
         title={title}
         onTitleChange={setTitle}
         saveStatus={saveStatus}
+        saveError={saveError}
         onSave={handleSave}
+        onRetrySave={handleSave}
         focusMode={focusMode}
         onToggleFocusMode={() => setFocusMode(f => !f)}
         onToggleVersionHistory={() => setShowVersionHistory(v => !v)}
@@ -88,6 +98,43 @@ export function WriterView({ document }: { document: Document }) {
           onClose={() => setShowVersionHistory(false)}
         />
       )}
+
+      {saveError ? (
+        <div
+          style={{
+            position: 'fixed',
+            right: 16,
+            bottom: 16,
+            zIndex: 400,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            border: '1px solid #f3d3cd',
+            background: '#fff5f3',
+            borderRadius: 12,
+            padding: '10px 12px',
+            boxShadow: '0 8px 24px rgba(21, 24, 23, 0.08)',
+          }}
+        >
+          <span style={{ fontSize: 12.5, color: '#7a271a', fontWeight: 500 }}>{saveError}</span>
+          <button
+            onClick={handleSave}
+            style={{
+              border: 'none',
+              background: '#b42318',
+              color: '#fff',
+              borderRadius: 8,
+              height: 28,
+              padding: '0 10px',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }
