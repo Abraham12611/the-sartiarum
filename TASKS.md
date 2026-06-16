@@ -127,7 +127,8 @@
 
 ---
 ### Day 3 â€” AI Actions
-*Branch: `feat/UNI-003-ai-actions`*
+*Branch: `feat/UNI-134-day3-ai-actions`*
+*Prep done: prompt and routing strategy docs in `docs/ai/`*
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
