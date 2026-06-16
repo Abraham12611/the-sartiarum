@@ -63,32 +63,18 @@ export function WriterView({ document }: { document: Document }) {
     setSaveError(null)
   }, [])
 
-  async function parseUiMessageText(response: Response, onChunk: (chunk: string) => void) {
+  async function parseTextStream(response: Response, onChunk: (chunk: string) => void) {
     if (!response.body) throw new Error('No response stream from AI route.')
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let output = ''
-    let buffer = ''
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() ?? ''
-
-      for (const lineRaw of lines) {
-        const line = lineRaw.trim()
-        if (!line || !line.startsWith('0:')) continue
-        const payload = line.slice(2)
-        try {
-          const chunk = JSON.parse(payload) as string
-          output += chunk
-          onChunk(chunk)
-        } catch {
-          // ignore malformed chunks
-        }
-      }
+      const chunk = decoder.decode(value, { stream: true })
+      output += chunk
+      onChunk(chunk)
     }
 
     return output.trim()
@@ -122,7 +108,7 @@ export function WriterView({ document }: { document: Document }) {
         throw new Error(message || `AI ${action} failed`)
       }
 
-      const text = await parseUiMessageText(response, (chunk) => {
+      const text = await parseTextStream(response, (chunk) => {
         generatedText += chunk
         setStreamPreview((prev) => (prev + chunk).slice(-500))
       })
