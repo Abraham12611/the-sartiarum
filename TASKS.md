@@ -138,8 +138,8 @@
 | 73 | Wire Summarize button â†’ `/api/ai/summarize` | in-progress | Route wired and inserts summary block into editor |
 | 74 | Wire Expand button â†’ `/api/ai/expand` | in-progress | Route wired with selection replacement and pre-AI snapshot |
 | 75 | Wire Brainstorm button â†’ `/api/ai/brainstorm` | in-progress | Route wired and inserts brainstorm bullets at cursor |
-| 76 | Streaming UX â€” inline shimmer + Stop button | todo | Never leave a dead spinner; partial content preserved on error |
-| 77 | Error + retry affordance for all AI actions | todo | Inline "Something went wrong â€” retry" button |
+| 76 | Streaming UX â€” inline shimmer + Stop button | in-progress | Streaming preview + Stop wired in Compose panel; final polish/QA pending |
+| 77 | Error + retry affordance for all AI actions | in-progress | Per-action retry wired in Compose panel; validating edge cases |
 | 78 | Writer settings passed to every AI route (tone/length/audience) | todo | Read from document row; injected into system prompt |
 | 79 | `ai_usage` logging confirmed working (check Supabase) | todo | Verify rows appear after a generation |
 

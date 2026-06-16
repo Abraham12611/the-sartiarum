@@ -23,6 +23,8 @@ type AiAction = 'write' | 'rewrite' | 'summarize' | 'expand' | 'brainstorm'
 
 export function WriterView({ document }: { document: Document }) {
   const editorRef = useRef<WriterEditorHandle>(null)
+  const streamAbortRef = useRef<AbortController | null>(null)
+  const lastActionRef = useRef<{ action: AiAction; payload: Record<string, unknown> } | null>(null)
 
   const [title, setTitle] = useState(document.title)
   const [content, setContent] = useState<unknown>(document.content)
@@ -38,6 +40,7 @@ export function WriterView({ document }: { document: Document }) {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<AiAction | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [streamPreview, setStreamPreview] = useState('')
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
@@ -60,7 +63,7 @@ export function WriterView({ document }: { document: Document }) {
     setSaveError(null)
   }, [])
 
-  async function parseUiMessageText(response: Response) {
+  async function parseUiMessageText(response: Response, onChunk: (chunk: string) => void) {
     if (!response.body) throw new Error('No response stream from AI route.')
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
@@ -79,7 +82,9 @@ export function WriterView({ document }: { document: Document }) {
         if (!line || !line.startsWith('0:')) continue
         const payload = line.slice(2)
         try {
-          output += JSON.parse(payload) as string
+          const chunk = JSON.parse(payload) as string
+          output += chunk
+          onChunk(chunk)
         } catch {
           // ignore malformed chunks
         }
@@ -92,13 +97,18 @@ export function WriterView({ document }: { document: Document }) {
   async function runAiAction(action: AiAction, payload: Record<string, unknown>) {
     setPendingAction(action)
     setActionError(null)
+    setStreamPreview('')
+    lastActionRef.current = { action, payload }
+    let generatedText = ''
 
     try {
       await snapshotDocumentVersion(document.id, editorRef.current?.getJSON() ?? content)
+      streamAbortRef.current = new AbortController()
 
       const response = await fetch(`/api/ai/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: streamAbortRef.current.signal,
         body: JSON.stringify({
           ...payload,
           tone,
@@ -112,7 +122,10 @@ export function WriterView({ document }: { document: Document }) {
         throw new Error(message || `AI ${action} failed`)
       }
 
-      const text = await parseUiMessageText(response)
+      const text = await parseUiMessageText(response, (chunk) => {
+        generatedText += chunk
+        setStreamPreview((prev) => (prev + chunk).slice(-500))
+      })
       if (!text) throw new Error('AI returned an empty response.')
 
       if (action === 'rewrite' || action === 'expand') {
@@ -127,10 +140,26 @@ export function WriterView({ document }: { document: Document }) {
 
       editorRef.current?.focus()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'AI action failed.'
+      const aborted = error instanceof DOMException && error.name === 'AbortError'
+      const message = aborted
+        ? 'Generation stopped. Partial output has been preserved.'
+        : error instanceof Error
+          ? error.message
+          : 'AI action failed.'
+
+      if (generatedText.trim()) {
+        if (action === 'rewrite' || action === 'expand') {
+          editorRef.current?.insertAtCursor(`\n\nPartial ${action}:\n${generatedText}`)
+        } else {
+          editorRef.current?.insertAtCursor(`\n\n${generatedText}`)
+        }
+      }
+
       setActionError(message)
     } finally {
+      streamAbortRef.current = null
       setPendingAction(null)
+      setStreamPreview('')
     }
   }
 
@@ -170,6 +199,16 @@ export function WriterView({ document }: { document: Document }) {
     await runAiAction(action, { selection })
   }
 
+  async function handleRetryLastAction() {
+    const last = lastActionRef.current
+    if (!last || pendingAction) return
+    await runAiAction(last.action, last.payload)
+  }
+
+  function handleStopGeneration() {
+    streamAbortRef.current?.abort()
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <WriterTopBar
@@ -196,8 +235,11 @@ export function WriterView({ document }: { document: Document }) {
           onAudienceChange={setAudience}
           onWrite={handleWrite}
           onAction={handleComposeAction}
+          onRetryLastAction={handleRetryLastAction}
+          onStopGeneration={handleStopGeneration}
           pendingAction={pendingAction}
           actionError={actionError}
+          streamPreview={streamPreview}
         />
 
         <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />

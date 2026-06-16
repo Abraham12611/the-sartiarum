@@ -16,8 +16,11 @@ interface ComposePanelProps {
   onAudienceChange: (v: string) => void
   onWrite: (prompt: string) => Promise<void>
   onAction: (action: AiActionId) => Promise<void>
+  onRetryLastAction: () => Promise<void>
+  onStopGeneration: () => void
   pendingAction: 'write' | AiActionId | null
   actionError: string | null
+  streamPreview: string
 }
 
 const AI_ACTIONS: Array<{ icon: React.ReactNode; label: string; id: AiActionId }> = [
@@ -37,8 +40,11 @@ export function ComposePanel({
   onAudienceChange,
   onWrite,
   onAction,
+  onRetryLastAction,
+  onStopGeneration,
   pendingAction,
   actionError,
+  streamPreview,
 }: ComposePanelProps) {
   const [prompt, setPrompt] = useState('')
 
@@ -182,9 +188,59 @@ export function ComposePanel({
         </div>
 
         {actionError ? (
-          <p style={{ marginTop: 10, fontSize: 12, color: '#b42318', lineHeight: 1.4 }}>
-            {actionError}
-          </p>
+          <div style={{ marginTop: 10, border: '1px solid #f3d3cd', background: '#fff5f3', borderRadius: 10, padding: '8px 10px' }}>
+            <p style={{ margin: 0, fontSize: 12, color: '#b42318', lineHeight: 1.4 }}>
+              {actionError}
+            </p>
+            <button
+              onClick={() => {
+                void onRetryLastAction()
+              }}
+              style={{
+                marginTop: 6,
+                height: 26,
+                borderRadius: 8,
+                border: 'none',
+                background: '#b42318',
+                color: '#fff',
+                fontSize: 11.5,
+                fontWeight: 600,
+                padding: '0 10px',
+                cursor: 'pointer',
+              }}
+            >
+              Retry action
+            </button>
+          </div>
+        ) : null}
+
+        {pendingAction ? (
+          <div style={{ marginTop: 10, border: '1px solid #dce7d5', background: '#f8fbf5', borderRadius: 10, padding: '8px 10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#3d5e34' }}>
+                Streaming {pendingAction}...
+              </span>
+              <button
+                onClick={onStopGeneration}
+                style={{
+                  height: 24,
+                  borderRadius: 8,
+                  border: '1px solid #d2dccb',
+                  background: '#fff',
+                  color: '#3b443d',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '0 8px',
+                  cursor: 'pointer',
+                }}
+              >
+                Stop
+              </button>
+            </div>
+            <div style={{ marginTop: 6, minHeight: 24, fontSize: 11.5, color: '#4f5963', lineHeight: 1.4 }}>
+              {streamPreview || 'Generating...'}
+            </div>
+          </div>
         ) : null}
       </div>
 
