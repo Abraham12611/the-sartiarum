@@ -5,6 +5,8 @@ export const openrouter = createOpenRouter({
 })
 
 export const MODELS = {
-  fast:     'openai/gpt-4o-mini',
-  standard: 'anthropic/claude-sonnet-4-6',
+  fast:         'openai/gpt-4o-mini',
+  standard:     'anthropic/claude-sonnet-4-6',
+  premium:      'anthropic/claude-sonnet-4-6',
+  fallbackFast: 'openai/gpt-4o-mini',
 } as const

@@ -129,6 +129,7 @@
 ### Day 3 â€” AI Actions
 *Branch: `feat/UNI-134-day3-ai-actions`*
 *Prep done: prompt and routing strategy docs in `docs/ai/`*
+*Current status: backend AI gate/router/prompt wiring landed in `feat/UNI-134-day3-prompt-routing`; UI action wiring and streaming UX are next.*
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
