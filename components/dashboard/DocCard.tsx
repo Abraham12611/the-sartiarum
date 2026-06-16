@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { DotsThree, FolderOpen, Trash } from '@phosphor-icons/react'
-import { deleteDocument } from '@/lib/actions/documents'
+import { DotsThree, FolderOpen, PencilSimple, Swap, Trash } from '@phosphor-icons/react'
+import { deleteDocument, moveDocumentToBoard, renameDocument } from '@/lib/actions/documents'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -14,9 +15,21 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { DashboardStatus } from './SectionTabs'
@@ -30,30 +43,74 @@ type Doc = {
   updatedAt: Date
 }
 
-export function DocCard({ doc }: { doc: Doc }) {
+type BoardTarget = { id: string; name: string }
+
+export function DocCard({ doc, allBoards }: { doc: Doc; allBoards: BoardTarget[] }) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [renameValue, setRenameValue] = useState(doc.title || 'Untitled')
   const snippet = useMemo(() => extractSnippet(doc.content, 105), [doc.content])
   const status = getStatusStyle(doc.status)
 
   async function handleDelete() {
     if (!confirm(`Delete "${doc.title || 'Untitled'}"? This cannot be undone.`)) return
     setDeleting(true)
-    await deleteDocument(doc.id)
-    router.refresh()
+    try {
+      await deleteDocument(doc.id)
+      router.refresh()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const openDocument = () => {
-    if (!deleting) router.push(`/app/doc/${doc.id}`)
+    if (!deleting && !busy) router.push(`/app/doc/${doc.id}`)
+  }
+
+  function handleCardClick(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement
+    if (target.closest('[data-doc-card-menu="true"]')) return
+    openDocument()
+  }
+
+  async function handleRenameSubmit() {
+    if (deleting || busy) return
+    const value = renameValue.trim()
+    if (!value || value === doc.title) {
+      setRenameOpen(false)
+      return
+    }
+    setBusy(true)
+    try {
+      await renameDocument(doc.id, value)
+      setRenameOpen(false)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleMoveToBoard(boardId: string) {
+    if (deleting || busy || boardId === '') return
+    setBusy(true)
+    try {
+      await moveDocumentToBoard(doc.id, boardId)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
-    <ContextMenu>
+    <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <ContextMenu>
       <ContextMenuTrigger>
         <Card
           role="button"
           tabIndex={0}
-          onClick={openDocument}
+          onClick={handleCardClick}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
@@ -67,19 +124,70 @@ export function DocCard({ doc }: { doc: Doc }) {
               {doc.title || 'Untitled'}
             </h3>
 
+            <div
+              data-doc-card-menu="true"
+              onClick={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="size-7 shrink-0 rounded-md text-[#6C746C]"><DotsThree size={18} weight="bold" /></Button>} />
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-7 shrink-0 rounded-md text-[#6C746C]"
+                    data-doc-card-menu="true"
+                    onClick={(event) => event.stopPropagation()}
+                    onMouseDown={(event) => event.stopPropagation()}
+                  >
+                    <DotsThree size={18} weight="bold" />
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="end" className="w-36">
                 <DropdownMenuItem onSelect={openDocument}>
                   <FolderOpen size={14} />
                   Open
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleDelete} className="text-[#b42318] focus:text-[#b42318]">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setRenameValue(doc.title || 'Untitled')
+                    setRenameOpen(true)
+                  }}
+                  disabled={busy || deleting}
+                >
+                  <PencilSimple size={14} />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={busy || deleting}>
+                    <Swap size={14} />
+                    Move to board
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-48">
+                    {allBoards.map((board) => (
+                      <DropdownMenuItem
+                        key={board.id}
+                        onSelect={() => handleMoveToBoard(board.id)}
+                        disabled={busy || deleting}
+                      >
+                        {board.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={handleDelete}
+                  className="text-[#b42318] focus:text-[#b42318]"
+                  disabled={busy || deleting}
+                >
                   <Trash size={14} />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           </div>
 
           <p className="mb-4 line-clamp-3 text-[13px] leading-[1.4] text-[#4C554E]">
@@ -101,12 +209,66 @@ export function DocCard({ doc }: { doc: Doc }) {
           <FolderOpen size={14} />
           Open
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleDelete} className="text-[#b42318] focus:text-[#b42318]">
+        <ContextMenuItem
+          onSelect={() => {
+            setRenameValue(doc.title || 'Untitled')
+            setRenameOpen(true)
+          }}
+          disabled={busy || deleting}
+        >
+          <PencilSimple size={14} />
+          Rename
+        </ContextMenuItem>
+        {allBoards.map((board) => (
+          <ContextMenuItem
+            key={board.id}
+            onSelect={() => handleMoveToBoard(board.id)}
+            disabled={busy || deleting}
+          >
+            <Swap size={14} />
+            Move: {board.name}
+          </ContextMenuItem>
+        ))}
+        <ContextMenuItem
+          onSelect={handleDelete}
+          className="text-[#b42318] focus:text-[#b42318]"
+          disabled={busy || deleting}
+        >
           <Trash size={14} />
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
-    </ContextMenu>
+      </ContextMenu>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rename document</DialogTitle>
+          <DialogDescription>Update the document title shown in your board and writer.</DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            void handleRenameSubmit()
+          }}
+          className="mt-4 space-y-3"
+        >
+          <Input
+            value={renameValue}
+            onChange={(event) => setRenameValue(event.target.value)}
+            placeholder="Document title"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={busy || !renameValue.trim()}>
+              {busy ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

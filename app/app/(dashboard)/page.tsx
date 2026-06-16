@@ -75,6 +75,7 @@ export default async function DashboardPage({
     boardDocuments,
     allDocuments,
     allSections,
+    allBoards,
     notesCountRows,
     sourcesLinkedCountRows,
     recentDocuments,
@@ -101,6 +102,7 @@ export default async function DashboardPage({
       .where(eq(documents.ownerId, user.id))
       .orderBy(desc(documents.updatedAt)),
     db.select().from(sections).where(eq(sections.ownerId, user.id)),
+    db.select().from(boards).where(eq(boards.ownerId, user.id)).orderBy(boards.sortOrder),
     (async () => {
       try {
         return await db
@@ -161,6 +163,7 @@ export default async function DashboardPage({
     <div className="grid h-full min-h-0 w-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_272px] xl:gap-x-5 xl:px-3">
       <BoardView
         board={activeBoard}
+        allBoards={allBoards}
         sections={boardSections}
         documents={boardDocuments.map((document) => ({
           ...document,

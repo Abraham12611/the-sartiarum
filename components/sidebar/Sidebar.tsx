@@ -1,9 +1,9 @@
-'use client'
+﻿'use client'
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import {
   BookOpenText,
   CalendarBlank,
@@ -20,13 +20,25 @@ import {
   SidebarSimple,
   SignOut,
   Folders,
+  Plus,
 } from '@phosphor-icons/react'
 import { signOut } from '@/lib/actions/auth'
+import { createBoard } from '@/lib/actions/boards'
+import { createDocument } from '@/lib/actions/documents'
+import { createSpace } from '@/lib/actions/spaces'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Sidebar,
   SidebarContent,
@@ -40,6 +52,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 type Space = { id: string; name: string; sortOrder: number }
 type Board = {
@@ -75,12 +93,20 @@ export function DashboardSidebar({
   subscription,
   aiUsageCount,
 }: DashboardSidebarProps) {
+  const router = useRouter()
   const { toggleSidebar } = useSidebar()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const activeBoardId = searchParams.get('board')
   const [searchValue, setSearchValue] = useState('')
+  const [modalQuery, setModalQuery] = useState('')
+  const [searchModalOpen, setSearchModalOpen] = useState(false)
+  const [createBoardOpen, setCreateBoardOpen] = useState(false)
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false)
+  const [newBoardName, setNewBoardName] = useState('')
+  const [newSpaceName, setNewSpaceName] = useState('')
   const [collapsedSpaces, setCollapsedSpaces] = useState<Set<string>>(new Set())
+  const [isPending, startTransition] = useTransition()
 
   const filteredBoards = useMemo(() => {
     if (!searchValue.trim()) return boards
@@ -89,6 +115,12 @@ export function DashboardSidebar({
   }, [boards, searchValue])
 
   const pinnedBoards = filteredBoards.filter((board) => board.isPinned)
+
+  const modalBoards = useMemo(() => {
+    if (!modalQuery.trim()) return boards
+    const q = modalQuery.trim().toLowerCase()
+    return boards.filter((board) => board.name.toLowerCase().includes(q))
+  }, [boards, modalQuery])
 
   const isTrialing = subscription?.status === 'trialing'
   const trialEndsAtMs = subscription?.trialEndsAt ? new Date(subscription.trialEndsAt).getTime() : null
@@ -124,12 +156,75 @@ export function DashboardSidebar({
     await signOut()
   }
 
+  function resolveTargetBoard() {
+    if (activeBoardId) return boards.find((board) => board.id === activeBoardId) ?? boards[0]
+    return boards.find((board) => board.isPinned) ?? boards[0]
+  }
+
+  function handleCreateDocumentFromSidebar() {
+    const targetBoard = resolveTargetBoard()
+    if (!targetBoard) return
+    startTransition(async () => {
+      const doc = await createDocument(targetBoard.id)
+      router.push(`/app/doc/${doc.id}`)
+    })
+  }
+
+  function handleCreateBoardFromSidebar() {
+    setNewBoardName('')
+    setCreateBoardOpen(true)
+  }
+
+  function handleCreateSpaceFromSidebar() {
+    setNewSpaceName('')
+    setCreateSpaceOpen(true)
+  }
+
+  function submitCreateBoard() {
+    const targetSpaceId = resolveTargetBoard()?.spaceId ?? spaces[0]?.id
+    if (!targetSpaceId) return
+    const name = newBoardName.trim()
+    if (!name) return
+    startTransition(async () => {
+      const board = await createBoard(targetSpaceId, name)
+      setCreateBoardOpen(false)
+      router.push(`/app?board=${board.id}`)
+    })
+  }
+
+  function submitCreateSpace() {
+    const name = newSpaceName.trim()
+    if (!name) return
+    startTransition(async () => {
+      await createSpace(name)
+      setCreateSpaceOpen(false)
+      router.refresh()
+    })
+  }
+
+  useEffect(() => {
+    function onKeydown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearchModalOpen(true)
+      }
+      if (event.key === 'Escape') {
+        setSearchModalOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', onKeydown)
+    return () => window.removeEventListener('keydown', onKeydown)
+  }, [])
+
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-[#EDE6DB] bg-[#FCFBF8]"
-      style={{ '--sidebar-width': '17.25rem' } as React.CSSProperties}
-    >
+    <Dialog open={createBoardOpen} onOpenChange={setCreateBoardOpen}>
+      <Dialog open={createSpaceOpen} onOpenChange={setCreateSpaceOpen}>
+        <Sidebar
+          collapsible="icon"
+          className="border-r border-[#EDE6DB] bg-[#FCFBF8]"
+          style={{ '--sidebar-width': '17.25rem' } as React.CSSProperties}
+        >
       <SidebarHeader className="gap-3 px-3.5 pt-3 pb-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
@@ -175,12 +270,34 @@ export function DashboardSidebar({
           <Input
             value={searchValue}
             onChange={(event) => setSearchValue(event.target.value)}
+            onFocus={() => setSearchModalOpen(true)}
             placeholder="Search"
             className="h-9 rounded-xl border-[#E8E1D7] bg-white pl-9 pr-14 text-sm font-medium text-[#2A2E2B] shadow-none placeholder:text-[#7A8179]"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium tracking-tight text-[#7C827B]">
-            ⌘K
+            Ctrl+K
           </span>
+        </div>
+
+        <div className="group-data-[collapsible=icon]:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  className="h-9 w-full rounded-xl bg-[#2f6e1f] text-sm font-semibold text-white hover:bg-[#285e1b]"
+                  disabled={isPending}
+                >
+                  <Plus size={15} weight="bold" />
+                  {isPending ? 'Working...' : 'New'}
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuItem onSelect={handleCreateDocumentFromSidebar}>New document</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleCreateBoardFromSidebar}>New board</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleCreateSpaceFromSidebar}>New space</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </SidebarHeader>
 
@@ -337,6 +454,117 @@ export function DashboardSidebar({
           </div>
         </Card>
       </SidebarFooter>
-    </Sidebar>
+
+      {searchModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 px-4 pt-24"
+          onClick={() => setSearchModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-[#e5ded4] bg-white p-3 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="relative">
+              <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A8179]" />
+              <Input
+                autoFocus
+                value={modalQuery}
+                onChange={(event) => setModalQuery(event.target.value)}
+                placeholder="Search boards..."
+                className="h-10 rounded-xl border-[#E8E1D7] bg-white pl-9 text-sm font-medium text-[#2A2E2B]"
+              />
+            </div>
+
+            <div className="mt-3 max-h-72 overflow-y-auto">
+              {modalBoards.length === 0 ? (
+                <div className="rounded-lg px-3 py-6 text-center text-sm text-[#6a726c]">
+                  No matching boards found.
+                </div>
+              ) : (
+                modalBoards.map((board) => (
+                  <button
+                    key={board.id}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium text-[#212624] hover:bg-[#f5f2eb]"
+                    onClick={() => {
+                      setSearchModalOpen(false)
+                      setModalQuery('')
+                      router.push(`/app?board=${board.id}`)
+                    }}
+                  >
+                    <span>{board.name}</span>
+                    <span className="text-xs text-[#7b837c]">Open</span>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between px-1 text-xs text-[#7c837c]">
+              <span>Use Ctrl/Cmd + K to open</span>
+              <span>Esc to close</span>
+            </div>
+          </div>
+        </div>
+      ) : null}
+        </Sidebar>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new board</DialogTitle>
+            <DialogDescription>Add a new board inside your current space.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitCreateBoard()
+            }}
+            className="mt-4 space-y-3"
+          >
+            <Input
+              value={newBoardName}
+              onChange={(event) => setNewBoardName(event.target.value)}
+              placeholder="Board name"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateBoardOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !newBoardName.trim()}>
+                {isPending ? 'Creating...' : 'Create board'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new space</DialogTitle>
+            <DialogDescription>Create a fresh workspace space for your boards.</DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitCreateSpace()
+            }}
+            className="mt-4 space-y-3"
+          >
+            <Input
+              value={newSpaceName}
+              onChange={(event) => setNewSpaceName(event.target.value)}
+              placeholder="Space name"
+              autoFocus
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateSpaceOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending || !newSpaceName.trim()}>
+                {isPending ? 'Creating...' : 'Create space'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Dialog>
   )
 }
