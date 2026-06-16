@@ -1,21 +1,29 @@
 'use client'
 
-import { useState, useTransition, useCallback } from 'react'
-import { saveDocument, getDocumentVersions, restoreVersion } from '@/lib/actions/documents'
+import { useCallback, useRef, useState, useTransition } from 'react'
+import { saveDocument, snapshotDocumentVersion } from '@/lib/actions/documents'
 import { WriterTopBar } from './WriterTopBar'
 import { ComposePanel } from './ComposePanel'
 import { AssistantPanel } from './AssistantPanel'
-import { Editor } from '@/components/editor/Editor'
+import { Editor, type WriterEditorHandle } from '@/components/editor/Editor'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
 
 type Document = {
-  id: string; title: string; content: unknown; tone: string;
-  length: string; audience: string; wordCount: number
+  id: string
+  title: string
+  content: unknown
+  tone: string
+  length: string
+  audience: string
+  wordCount: number
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
+type AiAction = 'write' | 'rewrite' | 'summarize' | 'expand' | 'brainstorm'
 
 export function WriterView({ document }: { document: Document }) {
+  const editorRef = useRef<WriterEditorHandle>(null)
+
   const [title, setTitle] = useState(document.title)
   const [content, setContent] = useState<unknown>(document.content)
   const [wordCount, setWordCount] = useState(document.wordCount)
@@ -26,8 +34,10 @@ export function WriterView({ document }: { document: Document }) {
   const [focusMode, setFocusMode] = useState(false)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<AiAction | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
@@ -50,9 +60,118 @@ export function WriterView({ document }: { document: Document }) {
     setSaveError(null)
   }, [])
 
+  async function parseUiMessageText(response: Response) {
+    if (!response.body) throw new Error('No response stream from AI route.')
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let output = ''
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''
+
+      for (const lineRaw of lines) {
+        const line = lineRaw.trim()
+        if (!line || !line.startsWith('0:')) continue
+        const payload = line.slice(2)
+        try {
+          output += JSON.parse(payload) as string
+        } catch {
+          // ignore malformed chunks
+        }
+      }
+    }
+
+    return output.trim()
+  }
+
+  async function runAiAction(action: AiAction, payload: Record<string, unknown>) {
+    setPendingAction(action)
+    setActionError(null)
+
+    try {
+      await snapshotDocumentVersion(document.id, editorRef.current?.getJSON() ?? content)
+
+      const response = await fetch(`/api/ai/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          tone,
+          length,
+          audience,
+        }),
+      })
+
+      if (!response.ok) {
+        const message = await response.text()
+        throw new Error(message || `AI ${action} failed`)
+      }
+
+      const text = await parseUiMessageText(response)
+      if (!text) throw new Error('AI returned an empty response.')
+
+      if (action === 'rewrite' || action === 'expand') {
+        editorRef.current?.replaceSelection(text)
+      } else if (action === 'summarize') {
+        editorRef.current?.insertAtCursor(`\n\nSummary:\n${text}`)
+      } else if (action === 'brainstorm') {
+        editorRef.current?.insertAtCursor(`\n\n${text}`)
+      } else {
+        editorRef.current?.insertAtCursor(text)
+      }
+
+      editorRef.current?.focus()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI action failed.'
+      setActionError(message)
+    } finally {
+      setPendingAction(null)
+    }
+  }
+
+  async function handleWrite(prompt: string) {
+    await runAiAction('write', { prompt })
+  }
+
+  async function handleComposeAction(action: Exclude<AiAction, 'write'>) {
+    const selection = editorRef.current?.getSelectionText() ?? ''
+    const wholeDoc = editorRef.current?.getPlainText() ?? ''
+
+    if (action === 'brainstorm') {
+      const topic = selection || wholeDoc.slice(0, 300)
+      if (!topic.trim()) {
+        setActionError('Select text or add a topic before brainstorming.')
+        return
+      }
+      await runAiAction(action, { topic })
+      return
+    }
+
+    if (action === 'summarize') {
+      const text = selection || wholeDoc
+      if (!text.trim()) {
+        setActionError('Add content first so AI can summarize it.')
+        return
+      }
+      await runAiAction(action, { text })
+      return
+    }
+
+    if (!selection.trim()) {
+      setActionError('Select text first before using Rewrite or Expand.')
+      return
+    }
+
+    await runAiAction(action, { selection })
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Top bar */}
       <WriterTopBar
         documentId={document.id}
         title={title}
@@ -62,13 +181,11 @@ export function WriterView({ document }: { document: Document }) {
         onSave={handleSave}
         onRetrySave={handleSave}
         focusMode={focusMode}
-        onToggleFocusMode={() => setFocusMode(f => !f)}
-        onToggleVersionHistory={() => setShowVersionHistory(v => !v)}
+        onToggleFocusMode={() => setFocusMode((value) => !value)}
+        onToggleVersionHistory={() => setShowVersionHistory((value) => !value)}
       />
 
-      {/* Three-column body */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Compose panel */}
         <ComposePanel
           documentId={document.id}
           tone={tone}
@@ -77,13 +194,16 @@ export function WriterView({ document }: { document: Document }) {
           onToneChange={setTone}
           onLengthChange={setLength}
           onAudienceChange={setAudience}
+          onWrite={handleWrite}
+          onAction={handleComposeAction}
+          pendingAction={pendingAction}
+          actionError={actionError}
         />
 
-        {/* Assistant panel (collapsible) */}
-        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen(o => !o)} />
+        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
 
-        {/* Editor */}
         <Editor
+          ref={editorRef}
           content={content}
           focusMode={focusMode}
           onUpdate={handleEditorUpdate}
@@ -91,13 +211,12 @@ export function WriterView({ document }: { document: Document }) {
         />
       </div>
 
-      {/* Version history slide-in */}
-      {showVersionHistory && (
+      {showVersionHistory ? (
         <VersionHistoryPanel
           documentId={document.id}
           onClose={() => setShowVersionHistory(false)}
         />
-      )}
+      ) : null}
 
       {saveError ? (
         <div

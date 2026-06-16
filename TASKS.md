@@ -103,7 +103,7 @@
 |---|------|--------|-------|
 | 56 | Auto-save on editor change (debounced ~10s) | done | Debounced save implemented |
 | 57 | Auto-save on blur | done | Blur-triggered immediate save implemented |
-| 58 | Version snapshot before any AI action | todo | Requires Day 3 AI action wiring |
+| 58 | Version snapshot before any AI action | done | Snapshot inserted before every Day 3 AI action request |
 | 59 | Version history panel UI (`components/writer/VersionHistory.tsx`) | done | History panel with grouped versions implemented |
 | 60 | Restore version | done | Restore flow wired to server action |
 
@@ -133,11 +133,11 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 71 | Wire Compose panel prompt â†’ `/api/ai/write` (streaming) | todo | `useCompletion`; stream into editor at cursor; Stop button |
-| 72 | Wire Rewrite button â†’ `/api/ai/rewrite` | todo | Replaces selection; snapshot version first |
-| 73 | Wire Summarize button â†’ `/api/ai/summarize` | todo | Inserts summary below selection |
-| 74 | Wire Expand button â†’ `/api/ai/expand` | todo | Replaces selection with expanded version |
-| 75 | Wire Brainstorm button â†’ `/api/ai/brainstorm` | todo | Inserts bullet list at cursor |
+| 71 | Wire Compose panel prompt â†’ `/api/ai/write` (streaming) | in-progress | Compose prompt is wired; next pass to tighten stream protocol + Stop button UX |
+| 72 | Wire Rewrite button â†’ `/api/ai/rewrite` | in-progress | Route wired with selection replacement and pre-AI snapshot |
+| 73 | Wire Summarize button â†’ `/api/ai/summarize` | in-progress | Route wired and inserts summary block into editor |
+| 74 | Wire Expand button â†’ `/api/ai/expand` | in-progress | Route wired with selection replacement and pre-AI snapshot |
+| 75 | Wire Brainstorm button â†’ `/api/ai/brainstorm` | in-progress | Route wired and inserts brainstorm bullets at cursor |
 | 76 | Streaming UX â€” inline shimmer + Stop button | todo | Never leave a dead spinner; partial content preserved on error |
 | 77 | Error + retry affordance for all AI actions | todo | Inline "Something went wrong â€” retry" button |
 | 78 | Writer settings passed to every AI route (tone/length/audience) | todo | Read from document row; injected into system prompt |

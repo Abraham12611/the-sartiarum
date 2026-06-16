@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { RotateCcw, AlignJustify, Layers, Zap, ChevronDown } from 'lucide-react'
+import { RotateCcw, AlignJustify, Layers, Zap } from 'lucide-react'
 import { WriterSettings } from './WriterSettings'
+
+type AiActionId = 'rewrite' | 'summarize' | 'expand' | 'brainstorm'
 
 interface ComposePanelProps {
   documentId: string
@@ -12,9 +14,13 @@ interface ComposePanelProps {
   onToneChange: (v: string) => void
   onLengthChange: (v: string) => void
   onAudienceChange: (v: string) => void
+  onWrite: (prompt: string) => Promise<void>
+  onAction: (action: AiActionId) => Promise<void>
+  pendingAction: 'write' | AiActionId | null
+  actionError: string | null
 }
 
-const AI_ACTIONS = [
+const AI_ACTIONS: Array<{ icon: React.ReactNode; label: string; id: AiActionId }> = [
   { icon: <Zap size={13} />, label: 'Rewrite', id: 'rewrite' },
   { icon: <AlignJustify size={13} />, label: 'Summarize', id: 'summarize' },
   { icon: <Layers size={13} />, label: 'Expand', id: 'expand' },
@@ -22,10 +28,21 @@ const AI_ACTIONS = [
 ]
 
 export function ComposePanel({
-  documentId, tone, length, audience,
-  onToneChange, onLengthChange, onAudienceChange,
+  documentId,
+  tone,
+  length,
+  audience,
+  onToneChange,
+  onLengthChange,
+  onAudienceChange,
+  onWrite,
+  onAction,
+  pendingAction,
+  actionError,
 }: ComposePanelProps) {
   const [prompt, setPrompt] = useState('')
+
+  const busy = pendingAction !== null
 
   return (
     <div
@@ -39,20 +56,32 @@ export function ComposePanel({
         background: '#faf9f7',
       }}
     >
-      {/* Header */}
       <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid #ede8e1' }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#9AA4A0', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>✦ Compose</p>
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#9AA4A0',
+            textTransform: 'uppercase',
+            letterSpacing: '0.07em',
+            margin: 0,
+          }}
+        >
+          ✦ Compose
+        </p>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 0' }}>
-        {/* Prompt area */}
-        <p style={{ fontSize: 12, color: '#9AA4A0', marginBottom: 8 }}>What would you like to write about?</p>
+        <p style={{ fontSize: 12, color: '#9AA4A0', marginBottom: 8 }}>
+          What would you like to write about?
+        </p>
         <div style={{ position: 'relative' }}>
           <textarea
             value={prompt}
-            onChange={e => setPrompt(e.target.value)}
+            onChange={(event) => setPrompt(event.target.value)}
             placeholder="Describe your topic or paste a brief…"
             rows={4}
+            disabled={busy}
             style={{
               width: '100%',
               borderRadius: 11,
@@ -66,13 +95,22 @@ export function ComposePanel({
               lineHeight: 1.55,
               background: '#fff',
               boxSizing: 'border-box',
+              opacity: busy ? 0.8 : 1,
             }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#4F6F3D' }}
-            onBlur={e => { e.currentTarget.style.borderColor = '#e1dbd2' }}
+            onFocus={(event) => {
+              event.currentTarget.style.borderColor = '#4F6F3D'
+            }}
+            onBlur={(event) => {
+              event.currentTarget.style.borderColor = '#e1dbd2'
+            }}
           />
           <button
-            onClick={() => {}}
-            title="Generate (wired in Day 3)"
+            onClick={async () => {
+              if (!prompt.trim() || busy) return
+              await onWrite(prompt.trim())
+            }}
+            title="Generate from prompt"
+            disabled={busy || !prompt.trim()}
             style={{
               position: 'absolute',
               bottom: 8,
@@ -80,9 +118,9 @@ export function ComposePanel({
               width: 26,
               height: 26,
               borderRadius: 7,
-              background: prompt.trim() ? '#4F6F3D' : '#c8d6be',
+              background: prompt.trim() && !busy ? '#4F6F3D' : '#c8d6be',
               border: 'none',
-              cursor: prompt.trim() ? 'pointer' : 'default',
+              cursor: prompt.trim() && !busy ? 'pointer' : 'default',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -95,15 +133,29 @@ export function ComposePanel({
           </button>
         </div>
 
-        {/* AI Actions */}
         <div style={{ marginTop: 14 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#9AA4A0', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Write with AI</p>
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: '#9AA4A0',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginBottom: 8,
+            }}
+          >
+            Write with AI
+          </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            {AI_ACTIONS.map(action => (
+            {AI_ACTIONS.map((action) => (
               <button
                 key={action.id}
-                onClick={() => {}}
-                title={`${action.label} — wired in Day 3`}
+                onClick={async () => {
+                  if (busy) return
+                  await onAction(action.id)
+                }}
+                disabled={busy}
+                title={action.label}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -112,24 +164,30 @@ export function ComposePanel({
                   padding: '0 10px',
                   borderRadius: 9,
                   border: '1px solid #e1dbd2',
-                  background: '#fff',
+                  background: pendingAction === action.id ? '#eef2e9' : '#fff',
                   fontSize: 12.5,
                   fontWeight: 500,
                   color: '#4F5963',
-                  cursor: 'pointer',
+                  cursor: busy ? 'not-allowed' : 'pointer',
                   fontFamily: 'Inter, sans-serif',
                   transition: 'border-color 0.12s',
+                  opacity: busy && pendingAction !== action.id ? 0.7 : 1,
                 }}
               >
                 <span style={{ color: '#4F6F3D' }}>{action.icon}</span>
-                {action.label}
+                {pendingAction === action.id ? 'Working...' : action.label}
               </button>
             ))}
           </div>
         </div>
+
+        {actionError ? (
+          <p style={{ marginTop: 10, fontSize: 12, color: '#b42318', lineHeight: 1.4 }}>
+            {actionError}
+          </p>
+        ) : null}
       </div>
 
-      {/* Writer settings */}
       <WriterSettings
         tone={tone}
         length={length}
