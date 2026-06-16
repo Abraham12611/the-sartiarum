@@ -1,12 +1,21 @@
-﻿# Task Prompts
+# Task Prompts
+
+> Updated 2026-06-16 — defined runtime variables precisely; clarified replacement-ready output. Prompt text otherwise unchanged.
 
 These are the exact prompt templates intended for Day 3 integration.
 
 ## Shared runtime variables
-- `{{tone}}` (e.g. Balanced, Formal, Conversational)
-- `{{length}}` (Short, Medium, Long)
-- `{{audience}}` (General, Technical, Academic, Business)
-- `{{user_prompt}}`, `{{selection}}`, `{{source_text}}`, `{{preceding_text}}`
+Resolve these from the request before composing the prompt:
+
+- `{{tone}}` — Balanced, Formal, Conversational, … (from Writer settings)
+- `{{length}}` — Short, Medium, Long (from Writer settings)
+- `{{audience}}` — General, Technical, Academic, Business (from Writer settings)
+- `{{user_prompt}}` — text from the Compose prompt box (write, brainstorm)
+- `{{selection}}` — the currently highlighted text in the editor (rewrite, expand)
+- `{{source_text}}` — the text to summarize: the **selection**, or the **whole document** when nothing is selected (summarize is the one action that sensibly targets the full doc)
+- `{{preceding_text}}` — the text immediately before the cursor (autocomplete)
+
+**Output contract:** for `rewrite` and `expand`, the output must be **replacement-ready** — it directly replaces `{{selection}}`, with no surrounding quotes, labels, or commentary.
 
 ## Length hints
 - `Short`: Keep concise. Target compact output.
@@ -45,6 +54,7 @@ Action: REWRITE
 - Audience: {{audience}}
 - Length guidance: {{length}}
 - Keep key facts and named entities unchanged.
+- Return replacement-ready text only (no quotes, no labels).
 ```
 
 ### User template
@@ -84,7 +94,8 @@ Action: EXPAND
 - Tone: {{tone}}
 - Audience: {{audience}}
 - Length guidance: {{length}}
-- Maintain continuity so expansion can replace original selection directly.
+- Maintain continuity so expansion can replace the original selection directly.
+- Return replacement-ready text only (no quotes, no labels).
 ```
 
 ### User template
@@ -130,6 +141,8 @@ Action: AUTOCOMPLETE
 Continue from this context:
 {{preceding_text}}
 ```
+
+> Note: the hard stop for autocomplete is the token cap (`maxOutputTokens = 60`, see `model-routing-and-costs.md`); "max two sentences" is the stylistic guide within that budget.
 
 ---
 
