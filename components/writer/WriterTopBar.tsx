@@ -127,7 +127,7 @@ export function WriterTopBar({
             boxShadow: editorMode === 'notion' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
           }}
         >
-          Notion
+          Neo
         </button>
         <button
           onClick={() => onEditorModeChange('classic')}

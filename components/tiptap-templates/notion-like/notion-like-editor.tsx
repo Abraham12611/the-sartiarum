@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext, useEffect } from "react"
+import { forwardRef, useContext, useEffect, useImperativeHandle, useRef } from "react"
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react"
 import type { Doc as YDoc } from "yjs"
 import type { TiptapCollabProvider } from "@tiptap-pro/provider"
@@ -97,6 +97,9 @@ import { TripleClickBlockSelection } from "@/components/tiptap-extension/triple-
 export interface NotionEditorProps {
   room: string
   placeholder?: string
+  initialContent?: unknown
+  onContentUpdate?: (content: unknown, wordCount: number) => void
+  onSaveNow?: () => void
 }
 
 export interface EditorProviderProps {
@@ -104,6 +107,20 @@ export interface EditorProviderProps {
   ydoc: YDoc
   placeholder?: string
   aiToken: string | null
+  initialContent?: unknown
+  onContentUpdate?: (content: unknown, wordCount: number) => void
+  onSaveNow?: () => void
+}
+
+export interface NotionEditorHandle {
+  getJSON: () => unknown
+  getSelectionText: () => string
+  getLastSelectionText: () => string
+  getPlainText: () => string
+  insertAtCursor: (text: string) => void
+  replaceSelection: (text: string) => void
+  replaceLastSelection: (text: string) => void
+  focus: () => void
 }
 
 /**
@@ -183,11 +200,21 @@ export function EditorContentArea() {
 /**
  * Component that creates and provides the editor instance
  */
-export function EditorProvider(props: EditorProviderProps) {
-  const { provider, ydoc, placeholder = "Start writing...", aiToken } = props
+export const EditorProvider = forwardRef<NotionEditorHandle, EditorProviderProps>(function EditorProvider(props, ref) {
+  const {
+    provider,
+    ydoc,
+    placeholder = "Start writing...",
+    aiToken,
+    initialContent,
+    onContentUpdate,
+    onSaveNow,
+  } = props
 
   const { user } = useUser()
   const { setTocContent } = useToc()
+  const lastSelectionTextRef = useRef("")
+  const lastSelectionRangeRef = useRef<{ from: number; to: number } | null>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -196,6 +223,10 @@ export function EditorProvider(props: EditorProviderProps) {
         class: "notion-like-editor",
       },
     },
+    content:
+      initialContent && Object.keys(initialContent as object).length > 0
+        ? (initialContent as any)
+        : undefined,
     extensions: [
       StarterKit.configure({
         undoRedo: false,
@@ -310,7 +341,64 @@ export function EditorProvider(props: EditorProviderProps) {
         },
       }),
     ],
+    onUpdate: ({ editor: current }) => {
+      if (!onContentUpdate) return
+      const json = current.getJSON()
+      const plain = current.getText().trim()
+      const words = plain ? plain.split(/\s+/).length : 0
+      onContentUpdate(json, words)
+    },
+    onSelectionUpdate: ({ editor: current }) => {
+      const { from, to } = current.state.selection
+      if (from === to) return
+      lastSelectionRangeRef.current = { from, to }
+      lastSelectionTextRef.current = current.state.doc.textBetween(from, to, " ")
+    },
+    onBlur: () => {
+      onSaveNow?.()
+    },
   })
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getJSON: () => editor?.getJSON() ?? {},
+      getSelectionText: () => {
+        if (!editor) return ""
+        const { from, to } = editor.state.selection
+        if (from === to) return ""
+        return editor.state.doc.textBetween(from, to, " ")
+      },
+      getLastSelectionText: () => lastSelectionTextRef.current,
+      getPlainText: () => editor?.getText() ?? "",
+      insertAtCursor: (text: string) => {
+        if (!editor || !text.trim()) return
+        editor.chain().focus().insertContent(text).run()
+      },
+      replaceSelection: (text: string) => {
+        if (!editor || !text.trim()) return
+        const { from, to } = editor.state.selection
+        if (from === to) {
+          editor.chain().focus().insertContent(text).run()
+          return
+        }
+        editor.chain().focus().insertContentAt({ from, to }, text).run()
+      },
+      replaceLastSelection: (text: string) => {
+        if (!editor || !text.trim()) return
+        const range = lastSelectionRangeRef.current
+        if (!range || range.from === range.to) {
+          editor.chain().focus().insertContent(text).run()
+          return
+        }
+        editor.chain().focus().insertContentAt(range, text).run()
+      },
+      focus: () => {
+        editor?.chain().focus().run()
+      },
+    }),
+    [editor],
+  )
 
   if (!editor) {
     return <LoadingSpinner />
@@ -341,32 +429,57 @@ export function EditorProvider(props: EditorProviderProps) {
       
     </div>
   )
-}
+})
 
 /**
  * Full editor with all necessary providers, ready to use with just a room ID
  */
-export function NotionEditor({
-  room,
-  placeholder = "Start writing...",
-}: NotionEditorProps) {
-  return (
-    <UserProvider>
-      <CollabProvider room={room}>
-        <AiProvider>
-          <TocProvider>
-            <NotionEditorContent placeholder={placeholder} />
-          </TocProvider>
-        </AiProvider>
-      </CollabProvider>
-    </UserProvider>
-  )
-}
+export const NotionEditor = forwardRef<NotionEditorHandle, NotionEditorProps>(
+  function NotionEditor(
+    {
+      room,
+      placeholder = "Start writing...",
+      initialContent,
+      onContentUpdate,
+      onSaveNow,
+    },
+    ref,
+  ) {
+    return (
+      <UserProvider>
+        <CollabProvider room={room}>
+          <AiProvider>
+            <TocProvider>
+              <NotionEditorContent
+                ref={ref}
+                placeholder={placeholder}
+                initialContent={initialContent}
+                onContentUpdate={onContentUpdate}
+                onSaveNow={onSaveNow}
+              />
+            </TocProvider>
+          </AiProvider>
+        </CollabProvider>
+      </UserProvider>
+    )
+  },
+)
 
 /**
  * Internal component that handles the editor loading state
  */
-export function NotionEditorContent({ placeholder }: { placeholder?: string }) {
+export const NotionEditorContent = forwardRef<
+  NotionEditorHandle,
+  {
+    placeholder?: string
+    initialContent?: unknown
+    onContentUpdate?: (content: unknown, wordCount: number) => void
+    onSaveNow?: () => void
+  }
+>(function NotionEditorContent(
+  { placeholder, initialContent, onContentUpdate, onSaveNow },
+  ref,
+) {
   const { provider, ydoc, setupError: collabSetupError } = useCollab()
   const { aiToken, setupError: aiSetupError } = useAi()
 
@@ -386,10 +499,14 @@ export function NotionEditorContent({ placeholder }: { placeholder?: string }) {
 
   return (
     <EditorProvider
+      ref={ref}
       provider={provider}
       ydoc={ydoc}
       placeholder={placeholder}
       aiToken={aiToken}
+      initialContent={initialContent}
+      onContentUpdate={onContentUpdate}
+      onSaveNow={onSaveNow}
     />
   )
-}
+})

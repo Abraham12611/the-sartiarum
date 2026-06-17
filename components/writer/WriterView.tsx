@@ -7,7 +7,7 @@ import { ComposePanel } from './ComposePanel'
 import { AssistantPanel } from './AssistantPanel'
 import { Editor, type WriterEditorHandle } from '@/components/editor/Editor'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
-import { NotionEditor } from '@/components/tiptap-templates/notion-like/notion-like-editor'
+import { NotionEditor, type NotionEditorHandle } from '@/components/tiptap-templates/notion-like/notion-like-editor'
 
 type Document = {
   id: string
@@ -23,7 +23,7 @@ type SaveStatus = 'saved' | 'saving' | 'unsaved'
 type AiAction = 'write' | 'rewrite' | 'summarize' | 'expand' | 'brainstorm'
 
 export function WriterView({ document }: { document: Document }) {
-  const editorRef = useRef<WriterEditorHandle>(null)
+  const editorRef = useRef<WriterEditorHandle | NotionEditorHandle>(null)
   const streamAbortRef = useRef<AbortController | null>(null)
   const lastActionRef = useRef<{ action: AiAction; payload: Record<string, unknown> } | null>(null)
 
@@ -230,40 +230,45 @@ export function WriterView({ document }: { document: Document }) {
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <ComposePanel
+          documentId={document.id}
+          tone={tone}
+          length={length}
+          audience={audience}
+          onToneChange={setTone}
+          onLengthChange={setLength}
+          onAudienceChange={setAudience}
+          onWrite={handleWrite}
+          onAction={handleComposeAction}
+          onRetryLastAction={handleRetryLastAction}
+          onStopGeneration={handleStopGeneration}
+          pendingAction={pendingAction}
+          actionError={actionError}
+          streamPreview={streamPreview}
+        />
+
+        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
+
         {editorMode === 'classic' ? (
-          <>
-            <ComposePanel
-              documentId={document.id}
-              tone={tone}
-              length={length}
-              audience={audience}
-              onToneChange={setTone}
-              onLengthChange={setLength}
-              onAudienceChange={setAudience}
-              onWrite={handleWrite}
-              onAction={handleComposeAction}
-              onRetryLastAction={handleRetryLastAction}
-              onStopGeneration={handleStopGeneration}
-              pendingAction={pendingAction}
-              actionError={actionError}
-              streamPreview={streamPreview}
-            />
-
-            <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
-
-            <Editor
-              ref={editorRef}
-              content={content}
-              focusMode={focusMode}
-              mode={editorMode}
-              onUpdate={handleEditorUpdate}
-              onSaveNow={handleSave}
-              onAiAction={handleComposeAction}
-            />
-          </>
+          <Editor
+            ref={editorRef}
+            content={content}
+            focusMode={focusMode}
+            mode={editorMode}
+            onUpdate={handleEditorUpdate}
+            onSaveNow={handleSave}
+            onAiAction={handleComposeAction}
+          />
         ) : (
           <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-            <NotionEditor room={`doc-${document.id}`} placeholder="Start writing..." />
+            <NotionEditor
+              ref={editorRef}
+              room={`doc-${document.id}`}
+              placeholder="Start writing..."
+              initialContent={content}
+              onContentUpdate={handleEditorUpdate}
+              onSaveNow={handleSave}
+            />
           </div>
         )}
       </div>
