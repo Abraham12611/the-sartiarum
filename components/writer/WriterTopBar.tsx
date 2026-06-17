@@ -18,13 +18,16 @@ interface WriterTopBarProps {
   onSave: () => void
   onRetrySave: () => void
   focusMode: boolean
+  editorMode: 'notion' | 'classic'
   onToggleFocusMode: () => void
   onToggleVersionHistory: () => void
+  onEditorModeChange: (mode: 'notion' | 'classic') => void
 }
 
 export function WriterTopBar({
   documentId, title, onTitleChange, saveStatus, focusMode,
   onToggleFocusMode, onToggleVersionHistory, saveError, onRetrySave,
+  editorMode, onEditorModeChange,
 }: WriterTopBarProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -107,6 +110,43 @@ export function WriterTopBar({
           Save failed - Retry
         </button>
       ) : null}
+
+      <div style={{ display: 'flex', background: '#f0ede8', borderRadius: 8, padding: 2, gap: 2, flexShrink: 0 }}>
+        <button
+          onClick={() => onEditorModeChange('notion')}
+          style={{
+            height: 26,
+            padding: '0 10px',
+            borderRadius: 6,
+            border: 'none',
+            background: editorMode === 'notion' ? '#fff' : 'transparent',
+            fontSize: 11.5,
+            fontWeight: 600,
+            color: editorMode === 'notion' ? '#141516' : '#9AA4A0',
+            cursor: 'pointer',
+            boxShadow: editorMode === 'notion' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          Notion
+        </button>
+        <button
+          onClick={() => onEditorModeChange('classic')}
+          style={{
+            height: 26,
+            padding: '0 10px',
+            borderRadius: 6,
+            border: 'none',
+            background: editorMode === 'classic' ? '#fff' : 'transparent',
+            fontSize: 11.5,
+            fontWeight: 600,
+            color: editorMode === 'classic' ? '#141516' : '#9AA4A0',
+            cursor: 'pointer',
+            boxShadow: editorMode === 'classic' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          Classic
+        </button>
+      </div>
 
       {/* Actions */}
       <button

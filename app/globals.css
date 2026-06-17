@@ -240,6 +240,42 @@
   transition: opacity 0.2s;
 }
 
+.notion-like-mode .tiptap-editor .ProseMirror {
+  font-size: 15.5px;
+  line-height: 1.7;
+  padding: 56px 80px 80px;
+  max-width: 760px;
+}
+
+.notion-like-mode .tiptap-editor .ProseMirror h1,
+.notion-like-mode .tiptap-editor .ProseMirror h2,
+.notion-like-mode .tiptap-editor .ProseMirror h3 {
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.notion-like-mode .tiptap-editor .ProseMirror h1 {
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin-top: 1rem;
+}
+
+.notion-like-mode .tiptap-editor .ProseMirror h2 {
+  font-size: 1.45rem;
+  font-weight: 650;
+}
+
+.notion-like-mode .tiptap-editor .ProseMirror h3 {
+  font-size: 1.15rem;
+  font-weight: 620;
+}
+
+.notion-like-mode .tiptap-editor .ProseMirror blockquote {
+  border-left-color: #d9ddd8;
+  color: #626d66;
+  font-style: normal;
+}
+
 .slash-menu {
   position: absolute;
   z-index: 200;

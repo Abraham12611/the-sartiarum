@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { saveDocument, snapshotDocumentVersion } from '@/lib/actions/documents'
 import { WriterTopBar } from './WriterTopBar'
 import { ComposePanel } from './ComposePanel'
@@ -41,6 +41,19 @@ export function WriterView({ document }: { document: Document }) {
   const [pendingAction, setPendingAction] = useState<AiAction | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [streamPreview, setStreamPreview] = useState('')
+  const [editorMode, setEditorMode] = useState<'notion' | 'classic'>('notion')
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('sartiarum-editor-mode')
+    if (saved === 'classic' || saved === 'notion') {
+      setEditorMode(saved)
+    }
+  }, [])
+
+  function handleEditorModeChange(mode: 'notion' | 'classic') {
+    setEditorMode(mode)
+    window.localStorage.setItem('sartiarum-editor-mode', mode)
+  }
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
@@ -209,8 +222,10 @@ export function WriterView({ document }: { document: Document }) {
         onSave={handleSave}
         onRetrySave={handleSave}
         focusMode={focusMode}
+        editorMode={editorMode}
         onToggleFocusMode={() => setFocusMode((value) => !value)}
         onToggleVersionHistory={() => setShowVersionHistory((value) => !value)}
+        onEditorModeChange={handleEditorModeChange}
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
@@ -237,6 +252,7 @@ export function WriterView({ document }: { document: Document }) {
           ref={editorRef}
           content={content}
           focusMode={focusMode}
+          mode={editorMode}
           onUpdate={handleEditorUpdate}
           onSaveNow={handleSave}
           onAiAction={handleComposeAction}

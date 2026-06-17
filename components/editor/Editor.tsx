@@ -22,6 +22,7 @@ import { SlashMenu } from './SlashMenu'
 interface EditorProps {
   content: unknown
   focusMode: boolean
+  mode: 'notion' | 'classic'
   onUpdate: (content: unknown, wordCount: number) => void
   onSaveNow: () => void
   onAiAction?: (action: 'rewrite' | 'summarize' | 'expand') => void
@@ -39,7 +40,7 @@ export interface WriterEditorHandle {
 }
 
 export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
-  function EditorComponent({ content, focusMode, onUpdate, onSaveNow, onAiAction }, ref) {
+  function EditorComponent({ content, focusMode, mode, onUpdate, onSaveNow, onAiAction }, ref) {
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
     const lastSelectionTextRef = useRef('')
     const lastSelectionRangeRef = useRef<{ from: number; to: number } | null>(null)
@@ -54,7 +55,7 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
         FocusExtension.configure({ className: 'has-focus', mode: 'deepest' }),
         Typography,
         Placeholder.configure({
-          placeholder: 'Start writing… or describe what you want in the Compose panel.',
+          placeholder: "Type '/' for commands or describe what you want in the Compose panel.",
         }),
       ],
       content: (content && Object.keys(content as object).length > 0 ? content : undefined) as any,
@@ -84,49 +85,53 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
       [],
     )
 
-    useImperativeHandle(ref, () => ({
-      getJSON: () => editor?.getJSON() ?? {},
-      getSelectionText: () => {
-        if (!editor) return ''
-        const { from, to } = editor.state.selection
-        if (from === to) return ''
-        return editor.state.doc.textBetween(from, to, ' ')
-      },
-      getLastSelectionText: () => lastSelectionTextRef.current,
-      getPlainText: () => editor?.getText() ?? '',
-      insertAtCursor: (text: string) => {
-        if (!editor || !text.trim()) return
-        editor.chain().focus().insertContent(text).run()
-      },
-      replaceSelection: (text: string) => {
-        if (!editor || !text.trim()) return
-        const { from, to } = editor.state.selection
-        if (from === to) {
+    useImperativeHandle(
+      ref,
+      () => ({
+        getJSON: () => editor?.getJSON() ?? {},
+        getSelectionText: () => {
+          if (!editor) return ''
+          const { from, to } = editor.state.selection
+          if (from === to) return ''
+          return editor.state.doc.textBetween(from, to, ' ')
+        },
+        getLastSelectionText: () => lastSelectionTextRef.current,
+        getPlainText: () => editor?.getText() ?? '',
+        insertAtCursor: (text: string) => {
+          if (!editor || !text.trim()) return
           editor.chain().focus().insertContent(text).run()
-          return
-        }
-        editor.chain().focus().insertContentAt({ from, to }, text).run()
-      },
-      replaceLastSelection: (text: string) => {
-        if (!editor || !text.trim()) return
-        const range = lastSelectionRangeRef.current
-        if (!range || range.from === range.to) {
-          editor.chain().focus().insertContent(text).run()
-          return
-        }
-        editor.chain().focus().insertContentAt(range, text).run()
-      },
-      focus: () => {
-        editor?.chain().focus().run()
-      },
-    }), [editor])
+        },
+        replaceSelection: (text: string) => {
+          if (!editor || !text.trim()) return
+          const { from, to } = editor.state.selection
+          if (from === to) {
+            editor.chain().focus().insertContent(text).run()
+            return
+          }
+          editor.chain().focus().insertContentAt({ from, to }, text).run()
+        },
+        replaceLastSelection: (text: string) => {
+          if (!editor || !text.trim()) return
+          const range = lastSelectionRangeRef.current
+          if (!range || range.from === range.to) {
+            editor.chain().focus().insertContent(text).run()
+            return
+          }
+          editor.chain().focus().insertContentAt(range, text).run()
+        },
+        focus: () => {
+          editor?.chain().focus().run()
+        },
+      }),
+      [editor],
+    )
 
     const wordCount = editor?.storage.characterCount.words() ?? 0
     const readTime = Math.max(1, Math.ceil(wordCount / 200))
 
     return (
       <div
-        className={`tiptap-editor-wrap ${focusMode ? 'focus-mode' : ''}`}
+        className={`tiptap-editor-wrap ${focusMode ? 'focus-mode' : ''} ${mode === 'notion' ? 'notion-like-mode' : 'classic-mode'}`}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -136,28 +141,45 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
           position: 'relative',
         }}
       >
-        <Toolbar editor={editor} />
+        {mode === 'classic' ? <Toolbar editor={editor} /> : null}
         {editor && <BubbleMenuWrapper editor={editor} onAiAction={onAiAction} />}
         {editor && <SlashMenu editor={editor} />}
         <div className="tiptap-editor" style={{ flex: 1, overflowY: 'auto' }}>
           <EditorContent editor={editor} style={{ height: '100%' }} />
         </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '10px 64px',
-            borderTop: '1px solid #ede8e1',
-            fontSize: 12,
-            color: '#9AA4A0',
-            background: '#fff',
-            flexShrink: 0,
-          }}
-        >
-          <span>
-            {wordCount.toLocaleString()} words · {readTime} min read
-          </span>
-        </div>
+        {mode === 'classic' ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '10px 64px',
+              borderTop: '1px solid #ede8e1',
+              fontSize: 12,
+              color: '#9AA4A0',
+              background: '#fff',
+              flexShrink: 0,
+            }}
+          >
+            <span>{wordCount.toLocaleString()} words � {readTime} min read</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              position: 'absolute',
+              right: 16,
+              bottom: 12,
+              fontSize: 11.5,
+              color: '#9AA4A0',
+              background: 'rgba(255,255,255,0.88)',
+              border: '1px solid #ede8e1',
+              borderRadius: 999,
+              padding: '4px 9px',
+              backdropFilter: 'blur(2px)',
+            }}
+          >
+            {wordCount.toLocaleString()} words
+          </div>
+        )}
       </div>
     )
   },
