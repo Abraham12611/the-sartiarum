@@ -111,6 +111,7 @@ export function WriterView({ document }: { document: Document }) {
         signal: streamAbortRef.current.signal,
         body: JSON.stringify({
           ...payload,
+          documentId: document.id,
           tone,
           length,
           audience,
