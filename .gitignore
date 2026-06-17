@@ -31,4 +31,4 @@ Thumbs.db
 
 
 # Authentication tokens
-.npmrc
+.npmrc.local
