@@ -28,3 +28,7 @@ Thumbs.db
 
 # Sentry
 .sentryclirc
+
+
+# Authentication tokens
+.npmrc

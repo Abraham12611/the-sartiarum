@@ -29,8 +29,11 @@ Set these in Vercel (Preview + Production):
 - `NEXT_PUBLIC_TIPTAP_COLLAB_DOC_PREFIX`
 - `NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID`
 - `NEXT_PUBLIC_TIPTAP_AI_APP_ID`
-- `TIPTAP_COLLAB_TOKEN`
-- `TIPTAP_AI_TOKEN`
+- `NEXT_PUBLIC_TIPTAP_COLLAB_TOKEN` (temporary/dev only)
+- `NEXT_PUBLIC_TIPTAP_AI_TOKEN` (temporary/dev only)
+- `NEXT_PUBLIC_USE_JWT_TOKEN_API_ENDPOINT` (optional, preferred for prod)
+- `TIPTAP_COLLAB_TOKEN` (server-side secret when implementing JWT endpoint)
+- `TIPTAP_AI_TOKEN` (server-side secret when implementing JWT endpoint)
 
 See `.env.example` for the full list.
 
