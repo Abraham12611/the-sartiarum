@@ -115,7 +115,7 @@ export function WriterView({ document }: { document: Document }) {
       if (!text) throw new Error('AI returned an empty response.')
 
       if (action === 'rewrite' || action === 'expand') {
-        editorRef.current?.replaceSelection(text)
+        editorRef.current?.replaceLastSelection(text)
       } else if (action === 'summarize') {
         editorRef.current?.insertAtCursor(`\n\nSummary:\n${text}`)
       } else if (action === 'brainstorm') {
@@ -154,7 +154,10 @@ export function WriterView({ document }: { document: Document }) {
   }
 
   async function handleComposeAction(action: Exclude<AiAction, 'write'>) {
-    const selection = editorRef.current?.getSelectionText() ?? ''
+    const selection =
+      editorRef.current?.getSelectionText() ||
+      editorRef.current?.getLastSelectionText() ||
+      ''
     const wholeDoc = editorRef.current?.getPlainText() ?? ''
 
     if (action === 'brainstorm') {

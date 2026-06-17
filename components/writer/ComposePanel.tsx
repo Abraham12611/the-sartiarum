@@ -156,6 +156,9 @@ export function ComposePanel({
             {AI_ACTIONS.map((action) => (
               <button
                 key={action.id}
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                }}
                 onClick={async () => {
                   if (busy) return
                   await onAction(action.id)

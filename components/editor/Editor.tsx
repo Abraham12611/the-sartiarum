@@ -29,15 +29,19 @@ interface EditorProps {
 export interface WriterEditorHandle {
   getJSON: () => unknown
   getSelectionText: () => string
+  getLastSelectionText: () => string
   getPlainText: () => string
   insertAtCursor: (text: string) => void
   replaceSelection: (text: string) => void
+  replaceLastSelection: (text: string) => void
   focus: () => void
 }
 
 export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
   function EditorComponent({ content, focusMode, onUpdate, onSaveNow }, ref) {
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+    const lastSelectionTextRef = useRef('')
+    const lastSelectionRangeRef = useRef<{ from: number; to: number } | null>(null)
 
     const editor = useEditor({
       extensions: [
@@ -60,6 +64,12 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
         saveTimeoutRef.current = setTimeout(() => onSaveNow(), 10000)
       },
+      onSelectionUpdate: ({ editor: current }) => {
+        const { from, to } = current.state.selection
+        if (from === to) return
+        lastSelectionRangeRef.current = { from, to }
+        lastSelectionTextRef.current = current.state.doc.textBetween(from, to, ' ')
+      },
       onBlur: () => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
         onSaveNow()
@@ -81,6 +91,7 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
         if (from === to) return ''
         return editor.state.doc.textBetween(from, to, ' ')
       },
+      getLastSelectionText: () => lastSelectionTextRef.current,
       getPlainText: () => editor?.getText() ?? '',
       insertAtCursor: (text: string) => {
         if (!editor || !text.trim()) return
@@ -94,6 +105,15 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
           return
         }
         editor.chain().focus().insertContentAt({ from, to }, text).run()
+      },
+      replaceLastSelection: (text: string) => {
+        if (!editor || !text.trim()) return
+        const range = lastSelectionRangeRef.current
+        if (!range || range.from === range.to) {
+          editor.chain().focus().insertContent(text).run()
+          return
+        }
+        editor.chain().focus().insertContentAt(range, text).run()
       },
       focus: () => {
         editor?.chain().focus().run()
