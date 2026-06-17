@@ -1,21 +1,32 @@
 'use client'
 
-import { useState, useTransition, useCallback } from 'react'
-import { saveDocument, getDocumentVersions, restoreVersion } from '@/lib/actions/documents'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { saveDocument, snapshotDocumentVersion } from '@/lib/actions/documents'
 import { WriterTopBar } from './WriterTopBar'
 import { ComposePanel } from './ComposePanel'
 import { AssistantPanel } from './AssistantPanel'
-import { Editor } from '@/components/editor/Editor'
+import { Editor, type WriterEditorHandle } from '@/components/editor/Editor'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
+import { NotionEditor, type NotionEditorHandle } from '@/components/tiptap-templates/notion-like/notion-like-editor'
 
 type Document = {
-  id: string; title: string; content: unknown; tone: string;
-  length: string; audience: string; wordCount: number
+  id: string
+  title: string
+  content: unknown
+  tone: string
+  length: string
+  audience: string
+  wordCount: number
 }
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
+type AiAction = 'write' | 'rewrite' | 'summarize' | 'expand' | 'brainstorm'
 
 export function WriterView({ document }: { document: Document }) {
+  const editorRef = useRef<WriterEditorHandle | NotionEditorHandle>(null)
+  const streamAbortRef = useRef<AbortController | null>(null)
+  const lastActionRef = useRef<{ action: AiAction; payload: Record<string, unknown> } | null>(null)
+
   const [title, setTitle] = useState(document.title)
   const [content, setContent] = useState<unknown>(document.content)
   const [wordCount, setWordCount] = useState(document.wordCount)
@@ -26,8 +37,24 @@ export function WriterView({ document }: { document: Document }) {
   const [focusMode, setFocusMode] = useState(false)
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<AiAction | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [streamPreview, setStreamPreview] = useState('')
+  const [editorMode, setEditorMode] = useState<'notion' | 'classic'>('notion')
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('sartiarum-editor-mode')
+    if (saved === 'classic' || saved === 'notion') {
+      setEditorMode(saved)
+    }
+  }, [])
+
+  function handleEditorModeChange(mode: 'notion' | 'classic') {
+    setEditorMode(mode)
+    window.localStorage.setItem('sartiarum-editor-mode', mode)
+  }
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
@@ -50,9 +77,143 @@ export function WriterView({ document }: { document: Document }) {
     setSaveError(null)
   }, [])
 
+  async function parseTextStream(response: Response, onChunk: (chunk: string) => void) {
+    if (!response.body) throw new Error('No response stream from AI route.')
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let output = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const chunk = decoder.decode(value, { stream: true })
+      output += chunk
+      onChunk(chunk)
+    }
+
+    return output.trim()
+  }
+
+  async function runAiAction(action: AiAction, payload: Record<string, unknown>) {
+    setPendingAction(action)
+    setActionError(null)
+    setStreamPreview('')
+    lastActionRef.current = { action, payload }
+    let generatedText = ''
+
+    try {
+      await snapshotDocumentVersion(document.id, editorRef.current?.getJSON() ?? content)
+      streamAbortRef.current = new AbortController()
+
+      const response = await fetch(`/api/ai/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: streamAbortRef.current.signal,
+        body: JSON.stringify({
+          ...payload,
+          tone,
+          length,
+          audience,
+        }),
+      })
+
+      if (!response.ok) {
+        const message = await response.text()
+        throw new Error(message || `AI ${action} failed`)
+      }
+
+      const text = await parseTextStream(response, (chunk) => {
+        generatedText += chunk
+        setStreamPreview((prev) => (prev + chunk).slice(-500))
+      })
+      if (!text) throw new Error('AI returned an empty response.')
+
+      if (action === 'rewrite' || action === 'expand') {
+        editorRef.current?.replaceLastSelection(text)
+      } else if (action === 'summarize') {
+        editorRef.current?.insertAtCursor(`\n\nSummary:\n${text}`)
+      } else if (action === 'brainstorm') {
+        editorRef.current?.insertAtCursor(`\n\n${text}`)
+      } else {
+        editorRef.current?.insertAtCursor(text)
+      }
+
+      editorRef.current?.focus()
+    } catch (error) {
+      const aborted = error instanceof DOMException && error.name === 'AbortError'
+      const message = aborted
+        ? 'Generation stopped. Partial output has been preserved.'
+        : error instanceof Error
+          ? error.message
+          : 'AI action failed.'
+
+      if (generatedText.trim()) {
+        if (action === 'rewrite' || action === 'expand') {
+          editorRef.current?.insertAtCursor(`\n\nPartial ${action}:\n${generatedText}`)
+        } else {
+          editorRef.current?.insertAtCursor(`\n\n${generatedText}`)
+        }
+      }
+
+      setActionError(message)
+    } finally {
+      streamAbortRef.current = null
+      setPendingAction(null)
+      setStreamPreview('')
+    }
+  }
+
+  async function handleWrite(prompt: string) {
+    await runAiAction('write', { prompt })
+  }
+
+  async function handleComposeAction(action: Exclude<AiAction, 'write'>) {
+    const selection =
+      editorRef.current?.getSelectionText() ||
+      editorRef.current?.getLastSelectionText() ||
+      ''
+    const wholeDoc = editorRef.current?.getPlainText() ?? ''
+
+    if (action === 'brainstorm') {
+      const topic = selection || wholeDoc.slice(0, 300)
+      if (!topic.trim()) {
+        setActionError('Select text or add a topic before brainstorming.')
+        return
+      }
+      await runAiAction(action, { topic })
+      return
+    }
+
+    if (action === 'summarize') {
+      const text = selection || wholeDoc
+      if (!text.trim()) {
+        setActionError('Add content first so AI can summarize it.')
+        return
+      }
+      await runAiAction(action, { text })
+      return
+    }
+
+    if (!selection.trim()) {
+      setActionError('Select text first before using Rewrite or Expand.')
+      return
+    }
+
+    await runAiAction(action, { selection })
+  }
+
+  async function handleRetryLastAction() {
+    const last = lastActionRef.current
+    if (!last || pendingAction) return
+    await runAiAction(last.action, last.payload)
+  }
+
+  function handleStopGeneration() {
+    streamAbortRef.current?.abort()
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Top bar */}
       <WriterTopBar
         documentId={document.id}
         title={title}
@@ -62,13 +223,13 @@ export function WriterView({ document }: { document: Document }) {
         onSave={handleSave}
         onRetrySave={handleSave}
         focusMode={focusMode}
-        onToggleFocusMode={() => setFocusMode(f => !f)}
-        onToggleVersionHistory={() => setShowVersionHistory(v => !v)}
+        editorMode={editorMode}
+        onToggleFocusMode={() => setFocusMode((value) => !value)}
+        onToggleVersionHistory={() => setShowVersionHistory((value) => !value)}
+        onEditorModeChange={handleEditorModeChange}
       />
 
-      {/* Three-column body */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Compose panel */}
         <ComposePanel
           documentId={document.id}
           tone={tone}
@@ -77,27 +238,47 @@ export function WriterView({ document }: { document: Document }) {
           onToneChange={setTone}
           onLengthChange={setLength}
           onAudienceChange={setAudience}
+          onWrite={handleWrite}
+          onAction={handleComposeAction}
+          onRetryLastAction={handleRetryLastAction}
+          onStopGeneration={handleStopGeneration}
+          pendingAction={pendingAction}
+          actionError={actionError}
+          streamPreview={streamPreview}
         />
 
-        {/* Assistant panel (collapsible) */}
-        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen(o => !o)} />
+        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
 
-        {/* Editor */}
-        <Editor
-          content={content}
-          focusMode={focusMode}
-          onUpdate={handleEditorUpdate}
-          onSaveNow={handleSave}
-        />
+        {editorMode === 'classic' ? (
+          <Editor
+            ref={editorRef}
+            content={content}
+            focusMode={focusMode}
+            mode={editorMode}
+            onUpdate={handleEditorUpdate}
+            onSaveNow={handleSave}
+            onAiAction={handleComposeAction}
+          />
+        ) : (
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <NotionEditor
+              ref={editorRef}
+              room={`doc-${document.id}`}
+              placeholder="Start writing..."
+              initialContent={content}
+              onContentUpdate={handleEditorUpdate}
+              onSaveNow={handleSave}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Version history slide-in */}
-      {showVersionHistory && (
+      {showVersionHistory ? (
         <VersionHistoryPanel
           documentId={document.id}
           onClose={() => setShowVersionHistory(false)}
         />
-      )}
+      ) : null}
 
       {saveError ? (
         <div

@@ -91,6 +91,15 @@ export async function updateDocumentTitle(id: string, title: string) {
   revalidatePath(`/app/doc/${id}`)
 }
 
+export async function snapshotDocumentVersion(documentId: string, content: unknown) {
+  const user = await requireUser()
+  await db.insert(documentVersions).values({
+    documentId,
+    ownerId: user.id,
+    content: content as any,
+  })
+}
+
 export async function renameDocument(id: string, title: string) {
   const normalized = title.trim()
   if (!normalized) throw new Error('Document title cannot be empty')

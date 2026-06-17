@@ -3,7 +3,15 @@
 import type { Editor } from '@tiptap/react'
 import { Bold, Italic, Underline as UnderlineIcon, RefreshCw, Minus, Expand } from 'lucide-react'
 
-export function BubbleMenuBar({ editor }: { editor: Editor }) {
+type BubbleAiAction = 'rewrite' | 'summarize' | 'expand'
+
+export function BubbleMenuBar({
+  editor,
+  onAiAction,
+}: {
+  editor: Editor
+  onAiAction?: (action: BubbleAiAction) => void
+}) {
   const btn = (active: boolean): React.CSSProperties => ({
     display: 'inline-flex',
     alignItems: 'center',
@@ -49,23 +57,26 @@ export function BubbleMenuBar({ editor }: { editor: Editor }) {
 
       {/* AI action stubs (wired in Day 3) */}
       <button
+        onMouseDown={(event) => event.preventDefault()}
         style={{ ...btn(false), gap: 4, paddingInline: 8, fontSize: 12, fontWeight: 600, width: 'auto', color: '#4F5963' }}
         title="Rewrite selection (Day 3)"
-        onClick={() => {}}
+        onClick={() => onAiAction?.('rewrite')}
       >
         <RefreshCw size={12} /> Rewrite
       </button>
       <button
+        onMouseDown={(event) => event.preventDefault()}
         style={{ ...btn(false), gap: 4, paddingInline: 8, fontSize: 12, fontWeight: 600, width: 'auto', color: '#4F5963' }}
         title="Summarize selection (Day 3)"
-        onClick={() => {}}
+        onClick={() => onAiAction?.('summarize')}
       >
         <Minus size={12} /> Summarize
       </button>
       <button
+        onMouseDown={(event) => event.preventDefault()}
         style={{ ...btn(false), gap: 4, paddingInline: 8, fontSize: 12, fontWeight: 600, width: 'auto', color: '#4F5963' }}
         title="Expand selection (Day 3)"
-        onClick={() => {}}
+        onClick={() => onAiAction?.('expand')}
       >
         <Expand size={12} /> Expand
       </button>

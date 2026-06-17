@@ -103,7 +103,7 @@
 |---|------|--------|-------|
 | 56 | Auto-save on editor change (debounced ~10s) | done | Debounced save implemented |
 | 57 | Auto-save on blur | done | Blur-triggered immediate save implemented |
-| 58 | Version snapshot before any AI action | todo | Requires Day 3 AI action wiring |
+| 58 | Version snapshot before any AI action | done | Snapshot inserted before every Day 3 AI action request |
 | 59 | Version history panel UI (`components/writer/VersionHistory.tsx`) | done | History panel with grouped versions implemented |
 | 60 | Restore version | done | Restore flow wired to server action |
 
@@ -127,17 +127,19 @@
 
 ---
 ### Day 3 â€” AI Actions
-*Branch: `feat/UNI-003-ai-actions`*
+*Branch: `feat/UNI-134-day3-ai-actions`*
+*Prep done: prompt and routing strategy docs in `docs/ai/`*
+*Current status: backend AI gate/router/prompt wiring landed in `feat/UNI-134-day3-prompt-routing`; UI action wiring and streaming UX are next.*
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 71 | Wire Compose panel prompt â†’ `/api/ai/write` (streaming) | todo | `useCompletion`; stream into editor at cursor; Stop button |
-| 72 | Wire Rewrite button â†’ `/api/ai/rewrite` | todo | Replaces selection; snapshot version first |
-| 73 | Wire Summarize button â†’ `/api/ai/summarize` | todo | Inserts summary below selection |
-| 74 | Wire Expand button â†’ `/api/ai/expand` | todo | Replaces selection with expanded version |
-| 75 | Wire Brainstorm button â†’ `/api/ai/brainstorm` | todo | Inserts bullet list at cursor |
-| 76 | Streaming UX â€” inline shimmer + Stop button | todo | Never leave a dead spinner; partial content preserved on error |
-| 77 | Error + retry affordance for all AI actions | todo | Inline "Something went wrong â€” retry" button |
+| 71 | Wire Compose panel prompt â†’ `/api/ai/write` (streaming) | in-progress | Compose prompt is wired; next pass to tighten stream protocol + Stop button UX |
+| 72 | Wire Rewrite button â†’ `/api/ai/rewrite` | in-progress | Route wired with selection replacement and pre-AI snapshot |
+| 73 | Wire Summarize button â†’ `/api/ai/summarize` | in-progress | Route wired and inserts summary block into editor |
+| 74 | Wire Expand button â†’ `/api/ai/expand` | in-progress | Route wired with selection replacement and pre-AI snapshot |
+| 75 | Wire Brainstorm button â†’ `/api/ai/brainstorm` | in-progress | Route wired and inserts brainstorm bullets at cursor |
+| 76 | Streaming UX â€” inline shimmer + Stop button | in-progress | Streaming preview + Stop wired in Compose panel; final polish/QA pending |
+| 77 | Error + retry affordance for all AI actions | in-progress | Per-action retry wired in Compose panel; validating edge cases |
 | 78 | Writer settings passed to every AI route (tone/length/audience) | todo | Read from document row; injected into system prompt |
 | 79 | `ai_usage` logging confirmed working (check Supabase) | todo | Verify rows appear after a generation |
 

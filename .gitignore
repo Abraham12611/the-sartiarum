@@ -15,7 +15,8 @@ dist/
 build/
 
 # Drizzle
-drizzle/
+# Keep migrations tracked for reproducible schema changes.
+!drizzle/
 
 # OS
 .DS_Store
@@ -27,3 +28,7 @@ Thumbs.db
 
 # Sentry
 .sentryclirc
+
+
+# Authentication tokens
+.npmrc.local

@@ -111,6 +111,11 @@ export const aiUsage = pgTable('ai_usage', {
   tokensIn:   integer('tokens_in').default(0),
   tokensOut:  integer('tokens_out').default(0),
   model:      text('model'),
+  promptVersion: text('prompt_version'),
+  tier:       text('tier'),
+  latencyMs:  integer('latency_ms'),
+  requestId:  text('request_id'),
+  fallbackReason: text('fallback_reason'),
   createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
