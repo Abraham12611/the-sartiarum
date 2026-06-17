@@ -160,7 +160,7 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
               flexShrink: 0,
             }}
           >
-            <span>{wordCount.toLocaleString()} words · {readTime} min read</span>
+            <span>{wordCount.toLocaleString()} words Â· {readTime} min read</span>
           </div>
         ) : (
           <div
