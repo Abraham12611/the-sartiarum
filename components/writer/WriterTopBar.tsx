@@ -1,9 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowLeft, Download, MoreHorizontal, Columns, Clock } from 'lucide-react'
+import { ArrowLeft, Download, Columns, Clock } from 'lucide-react'
 import { updateDocumentTitle } from '@/lib/actions/documents'
 import { useTransition, useRef } from 'react'
 
@@ -29,7 +27,6 @@ export function WriterTopBar({
   onToggleFocusMode, onToggleVersionHistory, saveError, onRetrySave,
   editorMode, onEditorModeChange,
 }: WriterTopBarProps) {
-  const router = useRouter()
   const [, startTransition] = useTransition()
   const titleRef = useRef<HTMLInputElement>(null)
 
@@ -57,13 +54,6 @@ export function WriterTopBar({
         background: '#fff',
       }}
     >
-      {/* Logo */}
-      <Link href="/app" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-        <Image src="/logo.png" alt="Sartiarum" width={96} height={20} style={{ objectFit: 'contain' }} />
-      </Link>
-
-      <div style={{ width: 1, height: 20, background: '#ede8e1' }} />
-
       {/* Assist | Coach toggle (Day 2: Assist only) */}
       <div style={{ display: 'flex', background: '#f0ede8', borderRadius: 8, padding: 2, gap: 2, flexShrink: 0 }}>
         <button style={{ height: 26, padding: '0 12px', borderRadius: 6, border: 'none', background: '#fff', fontSize: 12, fontWeight: 600, color: '#141516', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>Assist</button>
