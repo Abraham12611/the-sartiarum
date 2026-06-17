@@ -239,6 +239,7 @@ export function WriterView({ document }: { document: Document }) {
           focusMode={focusMode}
           onUpdate={handleEditorUpdate}
           onSaveNow={handleSave}
+          onAiAction={handleComposeAction}
         />
       </div>
 

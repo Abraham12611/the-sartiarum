@@ -8,7 +8,15 @@ import { BubbleMenuBar } from './BubbleMenuBar'
  * BubbleMenu was removed from @tiptap/react v3.
  * This replacement positions itself above the selection using coordsAtPos.
  */
-export function BubbleMenuWrapper({ editor }: { editor: Editor }) {
+type BubbleAiAction = 'rewrite' | 'summarize' | 'expand'
+
+export function BubbleMenuWrapper({
+  editor,
+  onAiAction,
+}: {
+  editor: Editor
+  onAiAction?: (action: BubbleAiAction) => void
+}) {
   const [visible, setVisible] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
 
@@ -55,7 +63,7 @@ export function BubbleMenuWrapper({ editor }: { editor: Editor }) {
       zIndex: 200,
       pointerEvents: 'auto',
     }}>
-      <BubbleMenuBar editor={editor} />
+      <BubbleMenuBar editor={editor} onAiAction={onAiAction} />
     </div>
   )
 }

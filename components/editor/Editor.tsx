@@ -24,6 +24,7 @@ interface EditorProps {
   focusMode: boolean
   onUpdate: (content: unknown, wordCount: number) => void
   onSaveNow: () => void
+  onAiAction?: (action: 'rewrite' | 'summarize' | 'expand') => void
 }
 
 export interface WriterEditorHandle {
@@ -38,7 +39,7 @@ export interface WriterEditorHandle {
 }
 
 export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
-  function EditorComponent({ content, focusMode, onUpdate, onSaveNow }, ref) {
+  function EditorComponent({ content, focusMode, onUpdate, onSaveNow, onAiAction }, ref) {
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
     const lastSelectionTextRef = useRef('')
     const lastSelectionRangeRef = useRef<{ from: number; to: number } | null>(null)
@@ -136,7 +137,7 @@ export const Editor = forwardRef<WriterEditorHandle, EditorProps>(
         }}
       >
         <Toolbar editor={editor} />
-        {editor && <BubbleMenuWrapper editor={editor} />}
+        {editor && <BubbleMenuWrapper editor={editor} onAiAction={onAiAction} />}
         {editor && <SlashMenu editor={editor} />}
         <div className="tiptap-editor" style={{ flex: 1, overflowY: 'auto' }}>
           <EditorContent editor={editor} style={{ height: '100%' }} />
