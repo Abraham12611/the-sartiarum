@@ -1,9 +1,6 @@
 import { streamText } from 'ai'
 import { openrouter, MODELS } from '@/lib/ai/openrouter'
-import { composePrompt } from '@/lib/ai/prompts'
-import { loadActiveVoiceProfile } from '@/lib/ai/voice-profile-loader'
-import { getActionMaxOutputTokens, selectModel } from '@/lib/ai/router'
-import { resolveWriterAiSettings } from '@/lib/ai/settings'
+import { composeCoachingAnalysisPrompt } from '@/lib/ai/coaching-prompts'
 import { createClient } from '@/lib/supabase/server'
 import { assertCanGenerate } from '@/lib/usage/gate'
 import { logAiUsage } from '@/lib/usage/logging'
@@ -19,46 +16,30 @@ export async function POST(req: Request) {
   if (!user) return new Response('Unauthorized', { status: 401 })
 
   const body = await req.json()
-  const { selection } = body
-  if (!selection?.trim()) return new Response('No text selected', { status: 400 })
+  const { draftText, documentId } = body
+  if (!draftText && draftText !== '') return new Response('Missing draftText', { status: 400 })
 
-  const action = 'expand' as const
-  const inputChars = String(selection).length
+  const action = 'write' as const // use same entitlement bucket
+  const inputChars = String(draftText).length
   const gate = await assertCanGenerate({ userId: user.id, action, inputChars })
   if (!gate.ok) return new Response(gate.reason, { status: gate.status })
 
-  const modelKey = selectModel({
-    action,
-    inputChars,
-    tier: gate.tier,
-    nearBudget: gate.nearBudget,
-    retryCount: 0,
-  })
-  const modelId = MODELS[modelKey]
-  const settings = await resolveWriterAiSettings({
-    userId: user.id,
-    documentId: body.documentId,
-    fallbackTone: body.tone,
-    fallbackLength: body.length,
-    fallbackAudience: body.audience,
-  })
-  const voiceProfile = await loadActiveVoiceProfile(user.id)
-  const { system, promptVersion } = composePrompt(action, settings, voiceProfile)
-  const maxOutputTokens = getActionMaxOutputTokens(action, { inputChars, length: settings.length })
+  const { system, prompt, promptVersion } = composeCoachingAnalysisPrompt(draftText)
+  const modelId = MODELS.standard
 
   const result = streamText({
     model: openrouter(modelId),
     system,
-    prompt: selection,
-    maxOutputTokens,
+    prompt,
+    maxOutputTokens: 1200,
     onFinish: async ({ usage }) => {
       const tokensIn = usage?.inputTokens ?? 0
       const tokensOut = usage?.outputTokens ?? 0
 
       await logAiUsage({
         userId: user.id,
-        action,
-        modelKey,
+        action: 'coach_analyze',
+        modelKey: 'standard',
         modelId,
         tokensIn,
         tokensOut,

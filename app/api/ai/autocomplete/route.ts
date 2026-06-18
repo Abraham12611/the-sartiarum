@@ -1,6 +1,7 @@
 import { generateText } from 'ai'
 import { openrouter, MODELS } from '@/lib/ai/openrouter'
 import { composePrompt } from '@/lib/ai/prompts'
+import { loadActiveVoiceProfile } from '@/lib/ai/voice-profile-loader'
 import { getActionMaxOutputTokens, selectModel } from '@/lib/ai/router'
 import { createClient } from '@/lib/supabase/server'
 import { assertCanGenerate } from '@/lib/usage/gate'
@@ -34,7 +35,8 @@ export async function POST(req: Request) {
     retryCount: 0,
   })
   const modelId = MODELS[modelKey]
-  const { system, promptVersion } = composePrompt(action, {})
+  const voiceProfile = await loadActiveVoiceProfile(user.id)
+  const { system, promptVersion } = composePrompt(action, {}, voiceProfile)
   const maxOutputTokens = getActionMaxOutputTokens(action, { inputChars })
 
   const { text, usage } = await generateText({

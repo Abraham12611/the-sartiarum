@@ -187,7 +187,7 @@
 ### Bug fixes
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 132 | Fix neo (Notion-like) editor scrolling for long content | done | Dual scroll containers + flex constraints prevented overflow; fixed in WriterView.tsx + notion-like-editor.scss |
+| 132 | Fix neo (Notion-like) editor scrolling for long content | in-progress | Attempted flex/overflow fixes; trackpad scroll still blocked. Debug logging added. Deferred — revisit later. |
 
 ---
 
@@ -196,9 +196,9 @@
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 103 | Mastra setup + coaching agent with memory | todo | Branch: `feat/UNI-006-mastra-coaching-agent` |
-| 104 | [Assist \| Coach] segmented toggle in Writer top bar | todo | Replaces "AI Assistant â—" pill |
-| 105 | Coaching panel (Socratic questions, no auto-edits, markers) | todo | Never writes into the doc |
+| 103 | Mastra setup + coaching agent with memory | deferred | Using Vercel AI SDK + OpenRouter for MVP; Mastra adoption later |
+| 104 | [Assist \| Coach] segmented toggle in Writer top bar | done | Branch: `feat/phase2-coaching-mode-mvp` |
+| 105 | Coaching panel (Socratic questions, no auto-edits, markers) | done | CoachingPanel.tsx + /api/ai/coach + /api/ai/coach/respond |
 | 106 | Writing metrics computation + fingerprint dashboard | todo | Sentence variance, filler rate, passive voice, readability |
 | 107 | Voice ingestion (paste samples/links â†’ structured profile) | todo | Zod schema; stored in `voice_profiles` table |
 | 108 | Style emulation wired into all AI actions | todo | RAG over pgvector (enable extension at Phase 2 start) |

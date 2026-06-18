@@ -5,9 +5,13 @@ import { saveDocument, snapshotDocumentVersion } from '@/lib/actions/documents'
 import { WriterTopBar } from './WriterTopBar'
 import { ComposePanel } from './ComposePanel'
 import { AssistantPanel } from './AssistantPanel'
+import { CoachingPanel, type CoachingItem } from './CoachingPanel'
 import { Editor, type WriterEditorHandle } from '@/components/editor/Editor'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
 import { NotionEditor, type NotionEditorHandle } from '@/components/tiptap-templates/notion-like/notion-like-editor'
+import { computeWritingMetrics, type WritingMetrics } from '@/lib/writing-metrics'
+import { VoiceIngestionModal } from './VoiceIngestionModal'
+import { markdownToHtml } from '@/lib/markdown-to-html'
 
 type Document = {
   id: string
@@ -43,6 +47,16 @@ export function WriterView({ document }: { document: Document }) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [streamPreview, setStreamPreview] = useState('')
   const [editorMode, setEditorMode] = useState<'notion' | 'classic'>('notion')
+  const [coachingMode, setCoachingMode] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isResponding, setIsResponding] = useState(false)
+  const [coachingItems, setCoachingItems] = useState<CoachingItem[]>([])
+  const [threadMessages, setThreadMessages] = useState<{ role: 'coach' | 'user'; content: string; parentQuestion?: string }[]>([])
+  const [writingMetrics, setWritingMetrics] = useState<WritingMetrics | null>(null)
+  const [autoTriggerReady, setAutoTriggerReady] = useState(false)
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false)
+  const lastWordCountForTrigger = useRef(0)
+  const typingPauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const saved = window.localStorage.getItem('sartiarum-editor-mode')
@@ -55,6 +69,164 @@ export function WriterView({ document }: { document: Document }) {
     setEditorMode(mode)
     window.localStorage.setItem('sartiarum-editor-mode', mode)
   }
+
+  function handleCoachingModeChange(mode: boolean) {
+    setCoachingMode(mode)
+    if (mode) setAssistantOpen(true)
+  }
+
+  // Recompute writing metrics on content change + auto-trigger detection
+  useEffect(() => {
+    const text = getPlainText()
+    if (text.length > 20) {
+      const m = computeWritingMetrics(text)
+      setWritingMetrics(m)
+
+      // Auto-trigger: detect when user has written 50+ new words since last feedback
+      if (coachingMode && coachingItems.length === 0) {
+        const newWords = m.wordCount - lastWordCountForTrigger.current
+        if (newWords >= 50) {
+          // Wait for typing pause (5 seconds of no change)
+          if (typingPauseTimer.current) clearTimeout(typingPauseTimer.current)
+          typingPauseTimer.current = setTimeout(() => {
+            setAutoTriggerReady(true)
+          }, 5000)
+        }
+      }
+    } else {
+      setWritingMetrics(null)
+    }
+
+    return () => {
+      if (typingPauseTimer.current) clearTimeout(typingPauseTimer.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, coachingMode])
+
+  function getPlainText(): string {
+    if (!content) return ''
+    if (typeof content === 'string') return content
+    try {
+      // Tiptap JSON → extract text recursively
+      function extract(node: unknown): string {
+        if (!node || typeof node !== 'object') return ''
+        const n = node as Record<string, unknown>
+        let text = ''
+        if (typeof n.text === 'string') text += n.text
+        if (Array.isArray(n.content)) {
+          for (const child of n.content) text += extract(child) + ' '
+        }
+        return text
+      }
+      return extract(content).trim()
+    } catch {
+      return JSON.stringify(content).slice(0, 8000)
+    }
+  }
+
+  async function handleRequestCoachingAnalysis() {
+    const draftText = getPlainText()
+    setIsAnalyzing(true)
+    setCoachingItems([])
+    setThreadMessages([])
+
+    try {
+      const res = await fetch('/api/ai/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftText, documentId: document.id }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('No stream')
+
+      let fullText = ''
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        fullText += decoder.decode(value, { stream: true })
+      }
+
+      // Parse the JSON array from the response
+      try {
+        // Strip markdown fences if present
+        let cleaned = fullText.trim()
+        if (cleaned.startsWith('```')) {
+          cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim()
+        }
+        const items = JSON.parse(cleaned) as CoachingItem[]
+        setCoachingItems(Array.isArray(items) ? items : [])
+      } catch {
+        // If not valid JSON, show as a single observation
+        setCoachingItems([{ type: 'observation', content: fullText.trim() }])
+      }
+    } catch (err) {
+      setCoachingItems([{ type: 'observation', content: `Error getting feedback: ${err instanceof Error ? err.message : 'Unknown error'}` }])
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  async function handleCoachingRespond(originalQuestion: string, userResponse: string) {
+    setIsResponding(true)
+    setThreadMessages((prev) => [
+      ...prev,
+      { role: 'user', content: userResponse, parentQuestion: originalQuestion },
+    ])
+
+    try {
+      const res = await fetch('/api/ai/coach/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ originalQuestion, userResponse }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('No stream')
+
+      let fullText = ''
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        fullText += decoder.decode(value, { stream: true })
+      }
+
+      setThreadMessages((prev) => [
+        ...prev,
+        { role: 'coach', content: fullText.trim() },
+      ])
+    } catch (err) {
+      setThreadMessages((prev) => [
+        ...prev,
+        { role: 'coach', content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` },
+      ])
+    } finally {
+      setIsResponding(false)
+    }
+  }
+
+  // Auto-save coaching session after each interaction
+  useEffect(() => {
+    if (coachingItems.length === 0) return
+    const timer = setTimeout(() => {
+      fetch('/api/ai/coach/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: document.id,
+          coachingItems,
+          threadMessages,
+          metrics: writingMetrics,
+        }),
+      }).catch(() => {}) // silent fail — non-critical
+    }, 3000) // debounce 3s
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coachingItems, threadMessages])
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
@@ -129,14 +301,17 @@ export function WriterView({ document }: { document: Document }) {
       })
       if (!text) throw new Error('AI returned an empty response.')
 
+      // Convert markdown to HTML so Tiptap renders headings, bold, lists, etc.
+      const html = markdownToHtml(text)
+
       if (action === 'rewrite' || action === 'expand') {
-        editorRef.current?.replaceLastSelection(text)
+        editorRef.current?.replaceLastSelection(html)
       } else if (action === 'summarize') {
-        editorRef.current?.insertAtCursor(`\n\nSummary:\n${text}`)
+        editorRef.current?.insertAtCursor(markdownToHtml(`**Summary:**\n\n${text}`))
       } else if (action === 'brainstorm') {
-        editorRef.current?.insertAtCursor(`\n\n${text}`)
+        editorRef.current?.insertAtCursor(html)
       } else {
-        editorRef.current?.insertAtCursor(text)
+        editorRef.current?.insertAtCursor(html)
       }
 
       editorRef.current?.focus()
@@ -149,10 +324,11 @@ export function WriterView({ document }: { document: Document }) {
           : 'AI action failed.'
 
       if (generatedText.trim()) {
+        const partialHtml = markdownToHtml(generatedText)
         if (action === 'rewrite' || action === 'expand') {
-          editorRef.current?.insertAtCursor(`\n\nPartial ${action}:\n${generatedText}`)
+          editorRef.current?.insertAtCursor(markdownToHtml(`**Partial ${action}:**\n\n${generatedText}`))
         } else {
-          editorRef.current?.insertAtCursor(`\n\n${generatedText}`)
+          editorRef.current?.insertAtCursor(partialHtml)
         }
       }
 
@@ -228,6 +404,9 @@ export function WriterView({ document }: { document: Document }) {
         onToggleFocusMode={() => setFocusMode((value) => !value)}
         onToggleVersionHistory={() => setShowVersionHistory((value) => !value)}
         onEditorModeChange={handleEditorModeChange}
+        coachingMode={coachingMode}
+        onCoachingModeChange={handleCoachingModeChange}
+        onOpenVoiceProfile={() => setVoiceModalOpen(true)}
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
@@ -248,7 +427,31 @@ export function WriterView({ document }: { document: Document }) {
           streamPreview={streamPreview}
         />
 
-        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
+        {coachingMode ? (
+          <CoachingPanel
+            open={assistantOpen}
+            onToggle={() => setAssistantOpen((value) => !value)}
+            onRequestAnalysis={() => {
+              lastWordCountForTrigger.current = writingMetrics?.wordCount ?? 0
+              setAutoTriggerReady(false)
+              handleRequestCoachingAnalysis()
+            }}
+            isAnalyzing={isAnalyzing}
+            coachingItems={coachingItems}
+            onRespond={handleCoachingRespond}
+            isResponding={isResponding}
+            threadMessages={threadMessages}
+            hasContent={getPlainText().length > 20}
+            metrics={writingMetrics}
+            autoTriggerReady={autoTriggerReady}
+            onDismissAutoTrigger={() => {
+              setAutoTriggerReady(false)
+              lastWordCountForTrigger.current = writingMetrics?.wordCount ?? 0
+            }}
+          />
+        ) : (
+          <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
+        )}
 
         {editorMode === 'classic' ? (
           <Editor
@@ -280,6 +483,8 @@ export function WriterView({ document }: { document: Document }) {
           onClose={() => setShowVersionHistory(false)}
         />
       ) : null}
+
+      <VoiceIngestionModal open={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
 
       {saveError ? (
         <div

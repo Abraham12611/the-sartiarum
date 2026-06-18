@@ -7,6 +7,8 @@ export type AiAction =
   | 'expand'
   | 'brainstorm'
   | 'autocomplete'
+  | 'coach_analyze'
+  | 'coach_respond'
 
 export type Tier = 'trial' | 'pro'
 export type ModelKey = keyof typeof MODELS
