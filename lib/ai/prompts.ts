@@ -2,6 +2,23 @@ import type { AiAction } from '@/lib/ai/router'
 
 type Settings = { tone?: string; length?: string; audience?: string }
 
+export type VoiceProfileForPrompt = {
+  name: string
+  description?: string
+  tone_keywords?: string[]
+  sentence_structure?: {
+    avg_length?: string
+    complexity?: string
+    fragments?: boolean
+    patterns?: string[]
+  }
+  vocabulary_level?: string
+  signature_patterns?: string[]
+  rhythm?: string
+  perspective?: string
+  figurative_language?: string
+}
+
 const GLOBAL_BASE = `You are Sartiarum, an in-product writing assistant.
 
 Primary objective:
@@ -116,13 +133,50 @@ function promptVersionFor(action: AiAction) {
   return 'task.autocomplete.v1'
 }
 
-export function composePrompt(action: AiAction, settings: Settings) {
+function voiceEmulationBlock(voice: VoiceProfileForPrompt): string {
+  const lines: string[] = [
+    `VOICE EMULATION — Write in the user's voice: "${voice.name}"`,
+  ]
+  if (voice.description) lines.push(`Overview: ${voice.description}`)
+  if (voice.tone_keywords?.length) lines.push(`Tone: ${voice.tone_keywords.join(', ')}`)
+  if (voice.vocabulary_level) lines.push(`Vocabulary level: ${voice.vocabulary_level}`)
+  if (voice.sentence_structure) {
+    const ss = voice.sentence_structure
+    const parts: string[] = []
+    if (ss.avg_length) parts.push(`avg sentence length: ${ss.avg_length}`)
+    if (ss.complexity) parts.push(`complexity: ${ss.complexity}`)
+    if (ss.fragments) parts.push('uses sentence fragments')
+    if (ss.patterns?.length) parts.push(`patterns: ${ss.patterns.join('; ')}`)
+    if (parts.length) lines.push(`Sentence structure: ${parts.join(', ')}`)
+  }
+  if (voice.signature_patterns?.length) {
+    lines.push(`Signature habits:\n${voice.signature_patterns.map(p => `- ${p}`).join('\n')}`)
+  }
+  if (voice.rhythm) lines.push(`Rhythm: ${voice.rhythm}`)
+  if (voice.perspective) lines.push(`Perspective: ${voice.perspective}`)
+  if (voice.figurative_language) lines.push(`Figurative language: ${voice.figurative_language}`)
+
+  lines.push(
+    '\nIMPORTANT: Emulate this voice naturally. Do not parody or exaggerate. '
+    + 'Preserve the structural habits, word choice level, and tonal quality described above. '
+    + 'The output should read as if the original author wrote it.'
+  )
+
+  return lines.join('\n')
+}
+
+export function composePrompt(action: AiAction, settings: Settings, voiceProfile?: VoiceProfileForPrompt | null) {
   if (action === 'autocomplete') {
-    return { system: GLOBAL_AUTOCOMPLETE, promptVersion: promptVersionFor(action) }
+    const parts = [GLOBAL_AUTOCOMPLETE]
+    if (voiceProfile) parts.push(voiceEmulationBlock(voiceProfile))
+    return { system: parts.join('\n\n'), promptVersion: promptVersionFor(action) }
   }
 
+  const parts = [GLOBAL_BASE, taskSystem(action, settings), GLOBAL_SAFETY]
+  if (voiceProfile) parts.push(voiceEmulationBlock(voiceProfile))
+
   return {
-    system: [GLOBAL_BASE, taskSystem(action, settings), GLOBAL_SAFETY].join('\n\n'),
+    system: parts.join('\n\n'),
     promptVersion: promptVersionFor(action),
   }
 }

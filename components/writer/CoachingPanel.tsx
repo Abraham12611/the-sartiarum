@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { WritingMetricsCard } from './WritingMetricsCard'
 import type { WritingMetrics } from '@/lib/writing-metrics'
+import { InlineMarkdown } from '@/components/ui/InlineMarkdown'
 
 export type CoachingItem = {
   type: 'question' | 'observation' | 'principle'
@@ -408,7 +409,7 @@ export function CoachingPanel({
                     margin: 0,
                   }}
                 >
-                  {item.content}
+                  <InlineMarkdown text={item.content} />
                 </p>
                 {item.type === 'question' && !isActive && (
                   <button
@@ -559,7 +560,7 @@ export function CoachingPanel({
                 margin: '4px 0 0',
               }}
             >
-              {msg.content}
+              <InlineMarkdown text={msg.content} />
             </p>
           </div>
         ))}

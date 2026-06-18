@@ -1,6 +1,7 @@
 import { streamText } from 'ai'
 import { openrouter, MODELS } from '@/lib/ai/openrouter'
 import { composePrompt } from '@/lib/ai/prompts'
+import { loadActiveVoiceProfile } from '@/lib/ai/voice-profile-loader'
 import { getActionMaxOutputTokens, selectModel } from '@/lib/ai/router'
 import { resolveWriterAiSettings } from '@/lib/ai/settings'
 import { createClient } from '@/lib/supabase/server'
@@ -41,7 +42,8 @@ export async function POST(req: Request) {
     fallbackLength: body.length,
     fallbackAudience: body.audience,
   })
-  const { system, promptVersion } = composePrompt(action, settings)
+  const voiceProfile = await loadActiveVoiceProfile(user.id)
+  const { system, promptVersion } = composePrompt(action, settings, voiceProfile)
   const maxOutputTokens = getActionMaxOutputTokens(action, { inputChars, length: settings.length })
 
   const result = streamText({
