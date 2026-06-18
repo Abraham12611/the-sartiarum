@@ -261,7 +261,7 @@ export function WriterView({ document }: { document: Document }) {
             onAiAction={handleComposeAction}
           />
         ) : (
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
             <NotionEditor
               ref={editorRef}
               room={`doc-${document.id}`}

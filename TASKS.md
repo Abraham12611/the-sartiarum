@@ -184,6 +184,13 @@
 
 ---
 
+### Bug fixes
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 132 | Fix neo (Notion-like) editor scrolling for long content | done | Dual scroll containers + flex constraints prevented overflow; fixed in WriterView.tsx + notion-like-editor.scss |
+
+---
+
 ## Phase 2 â€” Coaching & Voice (Days 6â€“12)
 *Reference: `src/imports/sartiarum-details/phase-2-coaching-and-voice.md`*
 
