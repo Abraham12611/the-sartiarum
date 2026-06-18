@@ -11,6 +11,7 @@ import { VersionHistoryPanel } from './VersionHistoryPanel'
 import { NotionEditor, type NotionEditorHandle } from '@/components/tiptap-templates/notion-like/notion-like-editor'
 import { computeWritingMetrics, type WritingMetrics } from '@/lib/writing-metrics'
 import { VoiceIngestionModal } from './VoiceIngestionModal'
+import { markdownToHtml } from '@/lib/markdown-to-html'
 
 type Document = {
   id: string
@@ -300,14 +301,17 @@ export function WriterView({ document }: { document: Document }) {
       })
       if (!text) throw new Error('AI returned an empty response.')
 
+      // Convert markdown to HTML so Tiptap renders headings, bold, lists, etc.
+      const html = markdownToHtml(text)
+
       if (action === 'rewrite' || action === 'expand') {
-        editorRef.current?.replaceLastSelection(text)
+        editorRef.current?.replaceLastSelection(html)
       } else if (action === 'summarize') {
-        editorRef.current?.insertAtCursor(`\n\nSummary:\n${text}`)
+        editorRef.current?.insertAtCursor(markdownToHtml(`**Summary:**\n\n${text}`))
       } else if (action === 'brainstorm') {
-        editorRef.current?.insertAtCursor(`\n\n${text}`)
+        editorRef.current?.insertAtCursor(html)
       } else {
-        editorRef.current?.insertAtCursor(text)
+        editorRef.current?.insertAtCursor(html)
       }
 
       editorRef.current?.focus()
@@ -320,10 +324,11 @@ export function WriterView({ document }: { document: Document }) {
           : 'AI action failed.'
 
       if (generatedText.trim()) {
+        const partialHtml = markdownToHtml(generatedText)
         if (action === 'rewrite' || action === 'expand') {
-          editorRef.current?.insertAtCursor(`\n\nPartial ${action}:\n${generatedText}`)
+          editorRef.current?.insertAtCursor(markdownToHtml(`**Partial ${action}:**\n\n${generatedText}`))
         } else {
-          editorRef.current?.insertAtCursor(`\n\n${generatedText}`)
+          editorRef.current?.insertAtCursor(partialHtml)
         }
       }
 
