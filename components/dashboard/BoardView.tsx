@@ -9,12 +9,23 @@ import {
   FadersHorizontal,
   MagnifyingGlass,
   Plus,
+  PencilSimple,
+  Trash,
+  ArrowSquareOut,
+  Copy,
 } from '@phosphor-icons/react'
-import { createDocument } from '@/lib/actions/documents'
+import { createDocument, deleteDocument, duplicateDocument } from '@/lib/actions/documents'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { DocCard } from './DocCard'
 import { DashboardStatus, SectionTabs } from './SectionTabs'
 
@@ -29,7 +40,7 @@ type Document = {
   updatedAt: Date
   createdAt: Date
 }
-type Board = { id: string; name: string; icon: string | null }
+type Board = { id: string; name: string; icon: string | null; spaceId?: string | null }
 
 interface BoardViewProps {
   board: Board
@@ -50,6 +61,7 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
   const [activeStatus, setActiveStatus] = useState<DashboardStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [creating, setCreating] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
 
   const defaultDraftSectionId = useMemo(
     () =>
@@ -91,17 +103,35 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-5 2xl:px-6">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="h-9 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
-          >
-            {board.name || 'Drafts'}
-            <CaretDown size={14} weight="bold" />
-          </Button>
+          {/* Board switcher dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-xl border-[#E5DED4] bg-white/80 px-4 text-[14px] font-semibold text-[#1F2422]"
+                >
+                  {board.name || 'Drafts'}
+                  <CaretDown size={14} weight="bold" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="start" className="w-48">
+              {allBoards.map((b) => (
+                <DropdownMenuItem
+                  key={b.id}
+                  onSelect={() => router.push(`/app?board=${b.id}`)}
+                  className={b.id === board.id ? 'font-semibold text-[#2F6E1F]' : ''}
+                >
+                  {b.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative w-[210px] xl:w-[235px]">
+          <div className="relative w-[210px] xl:w-[260px]">
             <MagnifyingGlass size={15} className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
               value={searchQuery}
@@ -110,18 +140,54 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
               className="h-9 rounded-xl border-[#E5DED4] bg-white/80 pl-9 text-sm"
             />
           </div>
-          <Button variant="outline" size="icon-sm" className="size-9 rounded-xl border-[#E5DED4] bg-white/80 text-[#4D5650]">
-            <FadersHorizontal size={16} />
-          </Button>
-          <Button
-            onClick={handleCreateDocument}
-            disabled={creating}
-            className="h-9 rounded-xl bg-[#2F6E1F] px-4 text-sm font-semibold text-white hover:bg-[#285E1B]"
-          >
-            <Plus size={16} weight="bold" />
-            {creating ? 'Creating...' : 'New'}
-            <CaretDown size={14} weight="bold" />
-          </Button>
+          {/* Filter dropdown */}
+          <DropdownMenu open={filterOpen} onOpenChange={setFilterOpen}>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  className={[
+                    'size-9 rounded-xl border-[#E5DED4] bg-white/80 text-[#4D5650]',
+                    activeStatus !== 'all' ? 'border-[#9FBA94] bg-[#F6FAF2] text-[#2F6E1F]' : '',
+                  ].join(' ')}
+                >
+                  <FadersHorizontal size={16} />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-40">
+              {(['all', 'ideas', 'draft', 'in_review', 'final'] as DashboardStatus[]).map((s) => (
+                <DropdownMenuItem
+                  key={s}
+                  onSelect={() => { setActiveStatus(s); setFilterOpen(false) }}
+                  className={activeStatus === s ? 'font-semibold text-[#2F6E1F]' : ''}
+                >
+                  {s === 'all' ? 'All statuses' : statusLabel(s)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* +New dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  disabled={creating}
+                  className="h-9 rounded-xl bg-[#2F6E1F] px-4 text-sm font-semibold text-white hover:bg-[#285E1B]"
+                >
+                  <Plus size={16} weight="bold" />
+                  {creating ? 'Creating...' : 'New'}
+                  <CaretDown size={14} weight="bold" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onSelect={handleCreateDocument}>
+                New document
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -140,7 +206,7 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
         totalCount={documents.length}
       />
 
-      <div className="mt-3 min-h-0 flex-1 overflow-hidden pr-1">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
         {featuredDoc ? (
           <>
             <Card
@@ -155,17 +221,17 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
                 aria-hidden
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-white/10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-white/60 via-white/30 to-transparent" />
 
-              <div className="relative z-10 flex min-h-[175px] flex-col p-4">
+              <div className="relative z-10 flex min-h-[200px] flex-col p-5">
                 <Badge className="mb-3 w-fit rounded-full bg-[#E8F1DC]/95 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#35582F]">
                   Current Draft
                 </Badge>
                 <h2 className="mb-1.5 font-[var(--font-newsreader)] text-[24px] leading-[1.08] font-semibold tracking-[-0.02em] text-[#151917] xl:text-[26px]">
                   {featuredDoc.title || 'Untitled'}
                 </h2>
-                <p className="mb-3 max-w-[420px] text-[14px] leading-[1.4] text-[#2F3732]">
-                  {extractSnippet(featuredDoc.content, 220) ||
+                <p className="mb-3 max-w-[480px] text-[14px] leading-[1.45] text-[#2F3732]">
+                  {extractSnippet(featuredDoc.content, 280) ||
                     'Open this draft to continue shaping your ideas with focus and clarity.'}
                 </p>
                 <div className="mt-auto flex flex-wrap items-center gap-4 text-[12px] text-[#465048]">
@@ -177,13 +243,49 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
                   <span>{timeAgo(featuredDoc.updatedAt)}</span>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                className="absolute right-3 top-3 z-20 size-7 rounded-md border-[#E5DED4] bg-white/80 text-[#5D665E]"
-              >
-                <DotsThree size={15} weight="bold" />
-              </Button>
+              {/* Featured card menu */}
+              <div className="absolute right-3 top-3 z-20" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        className="size-7 rounded-md border-[#E5DED4] bg-white/80 text-[#5D665E]"
+                      >
+                        <DotsThree size={15} weight="bold" />
+                      </Button>
+                    }
+                  />
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onSelect={() => router.push(`/app/doc/${featuredDoc.id}`)}>
+                      <ArrowSquareOut size={14} className="mr-2" />
+                      Open
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={async () => {
+                        const copy = await duplicateDocument(featuredDoc.id)
+                        router.refresh()
+                      }}
+                    >
+                      <Copy size={14} className="mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={async () => {
+                        if (!confirm(`Delete "${featuredDoc.title || 'Untitled'}"? This cannot be undone.`)) return
+                        await deleteDocument(featuredDoc.id)
+                        router.refresh()
+                      }}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash size={14} className="mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </Card>
 
             {gridDocs.length > 0 ? (

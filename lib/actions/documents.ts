@@ -143,6 +143,29 @@ export async function updateDocumentSettings(
     .where(and(eq(documents.id, id), eq(documents.ownerId, user.id)))
 }
 
+export async function duplicateDocument(id: string) {
+  const user = await requireUser()
+  const [original] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.id, id), eq(documents.ownerId, user.id)))
+    .limit(1)
+  if (!original) throw new Error('Document not found')
+  const [copy] = await db
+    .insert(documents)
+    .values({
+      ownerId: user.id,
+      boardId: original.boardId,
+      sectionId: original.sectionId,
+      title: `${original.title || 'Untitled'} (Copy)`,
+      content: original.content,
+      wordCount: original.wordCount,
+    })
+    .returning()
+  revalidatePath('/app')
+  return copy
+}
+
 export async function deleteDocument(id: string) {
   const user = await requireUser()
   await db

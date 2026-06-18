@@ -81,9 +81,9 @@ interface DashboardSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { href: '/app/learn', label: 'Learn', icon: GraduationCap, soon: true },
-  { href: '/app/plan', label: 'Plan', icon: CalendarBlank, soon: true },
-  { href: '/app/settings/profile', label: 'Settings', icon: Gear, soon: false },
+  { href: '/app/learn', label: 'Learn', icon: GraduationCap },
+  { href: '/app/plan', label: 'Plan', icon: CalendarBlank },
+  { href: '/app/settings/profile', label: 'Settings', icon: Gear },
 ]
 
 export function DashboardSidebar({
@@ -398,14 +398,6 @@ export function DashboardSidebar({
                     >
                       <Icon size={16} />
                       <span>{item.label}</span>
-                      {item.soon ? (
-                        <Badge
-                          variant="outline"
-                          className="ml-auto h-6 rounded-full border-[#E8E2D8] bg-white px-2.5 text-[10px] font-semibold text-[#3B413C]"
-                        >
-                          Soon
-                        </Badge>
-                      ) : null}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )
@@ -442,14 +434,15 @@ export function DashboardSidebar({
             </Button>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-[#666D66]">
-            <span>{aiUsageCount} AI actions used</span>
-            <span>{trialDaysLeft}d left</span>
+          <div className="mt-1 text-[11px] text-[#666D66]">
+            {isTrialing
+              ? `${trialDaysLeft}d of trial left`
+              : `${aiUsageCount} AI actions used`}
           </div>
           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#ECE8DE]">
             <div
               className="h-full rounded-full bg-[#4F6F3D]"
-              style={{ width: `${Math.min(100, (aiUsageCount / 50) * 100)}%` }}
+              style={{ width: `${Math.min(100, isTrialing ? ((30 - trialDaysLeft) / 30) * 100 : (aiUsageCount / 50) * 100)}%` }}
             />
           </div>
         </Card>

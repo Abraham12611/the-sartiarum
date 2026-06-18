@@ -68,12 +68,12 @@ export function StatsPanel({
           </CardTitle>
           <Pulse size={13} className="text-[#7A817A]" />
         </CardHeader>
-        <CardContent className="space-y-2.5 px-4 pt-0 pb-3">
-          <div className="grid grid-cols-2 gap-x-2 gap-y-2">
-            <AtGlanceItem label="Documents" value={documentsCount} icon={<FileDoc size={13} />} />
-            <AtGlanceItem label="Notes" value={notesCount} icon={<NotePencil size={13} />} />
-            <AtGlanceItem label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={13} />} />
-            <AtGlanceItem label="In review" value={inReviewCount} icon={<ClockCounterClockwise size={13} />} accent="blue" />
+        <CardContent className="space-y-2.5 px-4 pt-0 pb-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+            <AtGlanceItem label="Documents" value={documentsCount} icon={<FileDoc size={15} />} />
+            <AtGlanceItem label="Notes" value={notesCount} icon={<NotePencil size={15} />} />
+            <AtGlanceItem label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={15} />} />
+            <AtGlanceItem label="In review" value={inReviewCount} icon={<ClockCounterClockwise size={15} />} accent="blue" />
           </div>
         </CardContent>
       </Card>
@@ -84,7 +84,7 @@ export function StatsPanel({
             Recent activity
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1 px-4 pt-0 pb-3">
+        <CardContent className="space-y-0.5 px-4 pt-0 pb-3">
           {recentDocuments.length === 0 ? (
             <p className="text-xs text-[#788179]">No recent edits yet.</p>
           ) : (
@@ -92,13 +92,13 @@ export function StatsPanel({
               <Link
                 key={doc.id}
                 href={`/app/doc/${doc.id}`}
-                className="flex items-center justify-between gap-2 rounded-md px-0.5 py-0.5"
+                className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[#F5F2EB]"
               >
-                <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <FileDoc size={12} className="text-[#616A62]" />
-                  <span className="truncate text-[11px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  <FileDoc size={14} className="shrink-0 text-[#616A62]" />
+                  <span className="truncate text-[12px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
                 </span>
-                <span className="shrink-0 text-[10px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
+                <span className="shrink-0 text-[10.5px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
               </Link>
             ))
           )}
@@ -114,12 +114,19 @@ export function StatsPanel({
         </CardHeader>
         <CardContent className="space-y-1 px-4 pt-0 pb-3">
           {upcomingTasks.length === 0 ? (
-            <p className="text-[11px] text-[#788179]">No upcoming items yet.</p>
+            <p className="text-[11.5px] leading-relaxed text-[#788179]">
+              No upcoming items yet.
+              <br />
+              <span className="text-[10.5px]">Go to Settings to activate.</span>
+            </p>
           ) : (
-            upcomingTasks.slice(0, 2).map((task) => (
-              <div key={task.id} className="rounded-md px-0.5 py-0.5">
-                <p className="truncate text-[11px] font-medium text-[#202523]">{task.title}</p>
-                <small className="text-[10px] text-[#747B74]">{formatUpcoming(task.scheduledFor)}</small>
+            upcomingTasks.slice(0, 3).map((task) => (
+              <div key={task.id} className="flex items-start gap-2 rounded-lg px-2 py-1.5">
+                <CalendarBlank size={13} className="mt-0.5 shrink-0 text-[#6E756E]" />
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] font-medium text-[#202523]">{task.title}</p>
+                  <p className="text-[10.5px] text-[#747B74]">{formatUpcoming(task.scheduledFor)}</p>
+                </div>
               </div>
             ))
           )}
@@ -152,18 +159,18 @@ function AtGlanceItem({
 }) {
   return (
     <div>
-      <div className="mb-0.5 flex items-center justify-between">
-        <p className="text-[17px] leading-none font-semibold text-[#121614]">{value}</p>
+      <div className="mb-1 flex items-center justify-between">
+        <p className="text-[22px] leading-none font-bold text-[#121614]">{value}</p>
         <span
           className={[
-            'inline-flex size-4.5 items-center justify-center rounded-sm',
+            'inline-flex size-6 items-center justify-center rounded-md',
             accent === 'blue' ? 'bg-[#EDF4FF] text-[#3B82F6]' : 'bg-[#F2EFE9] text-[#5F665F]',
           ].join(' ')}
         >
           {icon}
         </span>
       </div>
-      <span className="text-[10px] text-[#5E675F]">{label}</span>
+      <span className="text-[11px] text-[#5E675F]">{label}</span>
     </div>
   )
 }
