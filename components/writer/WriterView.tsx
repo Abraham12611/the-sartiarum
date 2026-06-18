@@ -5,6 +5,7 @@ import { saveDocument, snapshotDocumentVersion } from '@/lib/actions/documents'
 import { WriterTopBar } from './WriterTopBar'
 import { ComposePanel } from './ComposePanel'
 import { AssistantPanel } from './AssistantPanel'
+import { CoachingPanel, type CoachingItem } from './CoachingPanel'
 import { Editor, type WriterEditorHandle } from '@/components/editor/Editor'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
 import { NotionEditor, type NotionEditorHandle } from '@/components/tiptap-templates/notion-like/notion-like-editor'
@@ -43,6 +44,11 @@ export function WriterView({ document }: { document: Document }) {
   const [actionError, setActionError] = useState<string | null>(null)
   const [streamPreview, setStreamPreview] = useState('')
   const [editorMode, setEditorMode] = useState<'notion' | 'classic'>('notion')
+  const [coachingMode, setCoachingMode] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isResponding, setIsResponding] = useState(false)
+  const [coachingItems, setCoachingItems] = useState<CoachingItem[]>([])
+  const [threadMessages, setThreadMessages] = useState<{ role: 'coach' | 'user'; content: string; parentQuestion?: string }[]>([])
 
   useEffect(() => {
     const saved = window.localStorage.getItem('sartiarum-editor-mode')
@@ -54,6 +60,117 @@ export function WriterView({ document }: { document: Document }) {
   function handleEditorModeChange(mode: 'notion' | 'classic') {
     setEditorMode(mode)
     window.localStorage.setItem('sartiarum-editor-mode', mode)
+  }
+
+  function handleCoachingModeChange(mode: boolean) {
+    setCoachingMode(mode)
+    if (mode) setAssistantOpen(true)
+  }
+
+  function getPlainText(): string {
+    if (!content) return ''
+    if (typeof content === 'string') return content
+    try {
+      // Tiptap JSON → extract text recursively
+      function extract(node: unknown): string {
+        if (!node || typeof node !== 'object') return ''
+        const n = node as Record<string, unknown>
+        let text = ''
+        if (typeof n.text === 'string') text += n.text
+        if (Array.isArray(n.content)) {
+          for (const child of n.content) text += extract(child) + ' '
+        }
+        return text
+      }
+      return extract(content).trim()
+    } catch {
+      return JSON.stringify(content).slice(0, 8000)
+    }
+  }
+
+  async function handleRequestCoachingAnalysis() {
+    const draftText = getPlainText()
+    setIsAnalyzing(true)
+    setCoachingItems([])
+    setThreadMessages([])
+
+    try {
+      const res = await fetch('/api/ai/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftText, documentId: document.id }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('No stream')
+
+      let fullText = ''
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        fullText += decoder.decode(value, { stream: true })
+      }
+
+      // Parse the JSON array from the response
+      try {
+        // Strip markdown fences if present
+        let cleaned = fullText.trim()
+        if (cleaned.startsWith('```')) {
+          cleaned = cleaned.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim()
+        }
+        const items = JSON.parse(cleaned) as CoachingItem[]
+        setCoachingItems(Array.isArray(items) ? items : [])
+      } catch {
+        // If not valid JSON, show as a single observation
+        setCoachingItems([{ type: 'observation', content: fullText.trim() }])
+      }
+    } catch (err) {
+      setCoachingItems([{ type: 'observation', content: `Error getting feedback: ${err instanceof Error ? err.message : 'Unknown error'}` }])
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  async function handleCoachingRespond(originalQuestion: string, userResponse: string) {
+    setIsResponding(true)
+    setThreadMessages((prev) => [
+      ...prev,
+      { role: 'user', content: userResponse, parentQuestion: originalQuestion },
+    ])
+
+    try {
+      const res = await fetch('/api/ai/coach/respond', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ originalQuestion, userResponse }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('No stream')
+
+      let fullText = ''
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        fullText += decoder.decode(value, { stream: true })
+      }
+
+      setThreadMessages((prev) => [
+        ...prev,
+        { role: 'coach', content: fullText.trim() },
+      ])
+    } catch (err) {
+      setThreadMessages((prev) => [
+        ...prev,
+        { role: 'coach', content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` },
+      ])
+    } finally {
+      setIsResponding(false)
+    }
   }
 
   const handleSave = useCallback(async () => {
@@ -228,6 +345,8 @@ export function WriterView({ document }: { document: Document }) {
         onToggleFocusMode={() => setFocusMode((value) => !value)}
         onToggleVersionHistory={() => setShowVersionHistory((value) => !value)}
         onEditorModeChange={handleEditorModeChange}
+        coachingMode={coachingMode}
+        onCoachingModeChange={handleCoachingModeChange}
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
@@ -248,7 +367,21 @@ export function WriterView({ document }: { document: Document }) {
           streamPreview={streamPreview}
         />
 
-        <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
+        {coachingMode ? (
+          <CoachingPanel
+            open={assistantOpen}
+            onToggle={() => setAssistantOpen((value) => !value)}
+            onRequestAnalysis={handleRequestCoachingAnalysis}
+            isAnalyzing={isAnalyzing}
+            coachingItems={coachingItems}
+            onRespond={handleCoachingRespond}
+            isResponding={isResponding}
+            threadMessages={threadMessages}
+            hasContent={getPlainText().length > 20}
+          />
+        ) : (
+          <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
+        )}
 
         {editorMode === 'classic' ? (
           <Editor

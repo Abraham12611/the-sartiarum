@@ -17,15 +17,17 @@ interface WriterTopBarProps {
   onRetrySave: () => void
   focusMode: boolean
   editorMode: 'notion' | 'classic'
+  coachingMode: boolean
   onToggleFocusMode: () => void
   onToggleVersionHistory: () => void
   onEditorModeChange: (mode: 'notion' | 'classic') => void
+  onCoachingModeChange: (mode: boolean) => void
 }
 
 export function WriterTopBar({
   documentId, title, onTitleChange, saveStatus, focusMode,
   onToggleFocusMode, onToggleVersionHistory, saveError, onRetrySave,
-  editorMode, onEditorModeChange,
+  editorMode, onEditorModeChange, coachingMode, onCoachingModeChange,
 }: WriterTopBarProps) {
   const [, startTransition] = useTransition()
   const titleRef = useRef<HTMLInputElement>(null)
@@ -54,10 +56,34 @@ export function WriterTopBar({
         background: '#fff',
       }}
     >
-      {/* Assist | Coach toggle (Day 2: Assist only) */}
-      <div style={{ display: 'flex', background: '#f0ede8', borderRadius: 8, padding: 2, gap: 2, flexShrink: 0 }}>
-        <button style={{ height: 26, padding: '0 12px', borderRadius: 6, border: 'none', background: '#fff', fontSize: 12, fontWeight: 600, color: '#141516', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>Assist</button>
-        <button style={{ height: 26, padding: '0 12px', borderRadius: 6, border: 'none', background: 'transparent', fontSize: 12, fontWeight: 500, color: '#9AA4A0', cursor: 'not-allowed', opacity: 0.6 }} disabled title="Coach mode ships in Phase 2">Coach</button>
+      {/* Assist | Coach toggle */}
+      <div style={{ display: 'flex', background: coachingMode ? '#eef2e9' : '#f0ede8', borderRadius: 8, padding: 2, gap: 2, flexShrink: 0, transition: 'background 0.2s' }}>
+        <button
+          onClick={() => onCoachingModeChange(false)}
+          style={{
+            height: 26, padding: '0 12px', borderRadius: 6, border: 'none',
+            background: !coachingMode ? '#fff' : 'transparent',
+            fontSize: 12, fontWeight: 600,
+            color: !coachingMode ? '#141516' : '#9AA4A0',
+            cursor: 'pointer',
+            boxShadow: !coachingMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          Assist
+        </button>
+        <button
+          onClick={() => onCoachingModeChange(true)}
+          style={{
+            height: 26, padding: '0 12px', borderRadius: 6, border: 'none',
+            background: coachingMode ? '#fff' : 'transparent',
+            fontSize: 12, fontWeight: 600,
+            color: coachingMode ? '#4F6F3D' : '#9AA4A0',
+            cursor: 'pointer',
+            boxShadow: coachingMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+          }}
+        >
+          Coach
+        </button>
       </div>
 
       {/* Doc title */}
