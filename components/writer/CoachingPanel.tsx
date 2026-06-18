@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   RefreshCw,
 } from 'lucide-react'
+import { WritingMetricsCard } from './WritingMetricsCard'
+import type { WritingMetrics } from '@/lib/writing-metrics'
 
 export type CoachingItem = {
   type: 'question' | 'observation' | 'principle'
@@ -34,6 +36,9 @@ interface CoachingPanelProps {
   isResponding: boolean
   threadMessages: ThreadMessage[]
   hasContent: boolean
+  metrics: WritingMetrics | null
+  autoTriggerReady: boolean
+  onDismissAutoTrigger: () => void
 }
 
 const typeIcons = {
@@ -64,6 +69,9 @@ export function CoachingPanel({
   isResponding,
   threadMessages,
   hasContent,
+  metrics,
+  autoTriggerReady,
+  onDismissAutoTrigger,
 }: CoachingPanelProps) {
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [responseText, setResponseText] = useState('')
@@ -184,6 +192,58 @@ export function CoachingPanel({
           gap: 12,
         }}
       >
+        {/* Auto-trigger nudge */}
+        {autoTriggerReady && coachingItems.length === 0 && !isAnalyzing && (
+          <div
+            style={{
+              background: '#eef2e9',
+              border: '1px solid #d4e0cc',
+              borderRadius: 10,
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              animation: 'fadeIn 0.3s ease',
+            }}
+          >
+            <Sparkles size={14} color="#4F6F3D" />
+            <span style={{ fontSize: 12.5, color: '#1f2937', flex: 1 }}>
+              New writing detected.
+            </span>
+            <button
+              onClick={onRequestAnalysis}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 7,
+                border: 'none',
+                background: '#4F6F3D',
+                color: '#fff',
+                fontSize: 11.5,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Get Feedback
+            </button>
+            <button
+              onClick={onDismissAutoTrigger}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#9ca3af',
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+            <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }`}</style>
+          </div>
+        )}
+
+        {/* Writing Metrics */}
+        <WritingMetricsCard metrics={metrics} />
+
         {/* Empty state */}
         {coachingItems.length === 0 && threadMessages.length === 0 && !isAnalyzing && (
           <div

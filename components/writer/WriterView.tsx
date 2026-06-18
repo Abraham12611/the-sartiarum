@@ -9,6 +9,8 @@ import { CoachingPanel, type CoachingItem } from './CoachingPanel'
 import { Editor, type WriterEditorHandle } from '@/components/editor/Editor'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
 import { NotionEditor, type NotionEditorHandle } from '@/components/tiptap-templates/notion-like/notion-like-editor'
+import { computeWritingMetrics, type WritingMetrics } from '@/lib/writing-metrics'
+import { VoiceIngestionModal } from './VoiceIngestionModal'
 
 type Document = {
   id: string
@@ -49,6 +51,11 @@ export function WriterView({ document }: { document: Document }) {
   const [isResponding, setIsResponding] = useState(false)
   const [coachingItems, setCoachingItems] = useState<CoachingItem[]>([])
   const [threadMessages, setThreadMessages] = useState<{ role: 'coach' | 'user'; content: string; parentQuestion?: string }[]>([])
+  const [writingMetrics, setWritingMetrics] = useState<WritingMetrics | null>(null)
+  const [autoTriggerReady, setAutoTriggerReady] = useState(false)
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false)
+  const lastWordCountForTrigger = useRef(0)
+  const typingPauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const saved = window.localStorage.getItem('sartiarum-editor-mode')
@@ -66,6 +73,34 @@ export function WriterView({ document }: { document: Document }) {
     setCoachingMode(mode)
     if (mode) setAssistantOpen(true)
   }
+
+  // Recompute writing metrics on content change + auto-trigger detection
+  useEffect(() => {
+    const text = getPlainText()
+    if (text.length > 20) {
+      const m = computeWritingMetrics(text)
+      setWritingMetrics(m)
+
+      // Auto-trigger: detect when user has written 50+ new words since last feedback
+      if (coachingMode && coachingItems.length === 0) {
+        const newWords = m.wordCount - lastWordCountForTrigger.current
+        if (newWords >= 50) {
+          // Wait for typing pause (5 seconds of no change)
+          if (typingPauseTimer.current) clearTimeout(typingPauseTimer.current)
+          typingPauseTimer.current = setTimeout(() => {
+            setAutoTriggerReady(true)
+          }, 5000)
+        }
+      }
+    } else {
+      setWritingMetrics(null)
+    }
+
+    return () => {
+      if (typingPauseTimer.current) clearTimeout(typingPauseTimer.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, coachingMode])
 
   function getPlainText(): string {
     if (!content) return ''
@@ -172,6 +207,25 @@ export function WriterView({ document }: { document: Document }) {
       setIsResponding(false)
     }
   }
+
+  // Auto-save coaching session after each interaction
+  useEffect(() => {
+    if (coachingItems.length === 0) return
+    const timer = setTimeout(() => {
+      fetch('/api/ai/coach/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: document.id,
+          coachingItems,
+          threadMessages,
+          metrics: writingMetrics,
+        }),
+      }).catch(() => {}) // silent fail — non-critical
+    }, 3000) // debounce 3s
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coachingItems, threadMessages])
 
   const handleSave = useCallback(async () => {
     setSaveStatus('saving')
@@ -347,6 +401,7 @@ export function WriterView({ document }: { document: Document }) {
         onEditorModeChange={handleEditorModeChange}
         coachingMode={coachingMode}
         onCoachingModeChange={handleCoachingModeChange}
+        onOpenVoiceProfile={() => setVoiceModalOpen(true)}
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
@@ -371,13 +426,23 @@ export function WriterView({ document }: { document: Document }) {
           <CoachingPanel
             open={assistantOpen}
             onToggle={() => setAssistantOpen((value) => !value)}
-            onRequestAnalysis={handleRequestCoachingAnalysis}
+            onRequestAnalysis={() => {
+              lastWordCountForTrigger.current = writingMetrics?.wordCount ?? 0
+              setAutoTriggerReady(false)
+              handleRequestCoachingAnalysis()
+            }}
             isAnalyzing={isAnalyzing}
             coachingItems={coachingItems}
             onRespond={handleCoachingRespond}
             isResponding={isResponding}
             threadMessages={threadMessages}
             hasContent={getPlainText().length > 20}
+            metrics={writingMetrics}
+            autoTriggerReady={autoTriggerReady}
+            onDismissAutoTrigger={() => {
+              setAutoTriggerReady(false)
+              lastWordCountForTrigger.current = writingMetrics?.wordCount ?? 0
+            }}
           />
         ) : (
           <AssistantPanel open={assistantOpen} onToggle={() => setAssistantOpen((value) => !value)} />
@@ -413,6 +478,8 @@ export function WriterView({ document }: { document: Document }) {
           onClose={() => setShowVersionHistory(false)}
         />
       ) : null}
+
+      <VoiceIngestionModal open={voiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
 
       {saveError ? (
         <div

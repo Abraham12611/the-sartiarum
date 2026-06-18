@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Download, Columns, Clock } from 'lucide-react'
+import { ArrowLeft, Download, Columns, Clock, Mic } from 'lucide-react'
 import { updateDocumentTitle } from '@/lib/actions/documents'
 import { useTransition, useRef } from 'react'
 
@@ -22,12 +22,13 @@ interface WriterTopBarProps {
   onToggleVersionHistory: () => void
   onEditorModeChange: (mode: 'notion' | 'classic') => void
   onCoachingModeChange: (mode: boolean) => void
+  onOpenVoiceProfile: () => void
 }
 
 export function WriterTopBar({
   documentId, title, onTitleChange, saveStatus, focusMode,
   onToggleFocusMode, onToggleVersionHistory, saveError, onRetrySave,
-  editorMode, onEditorModeChange, coachingMode, onCoachingModeChange,
+  editorMode, onEditorModeChange, coachingMode, onCoachingModeChange, onOpenVoiceProfile,
 }: WriterTopBarProps) {
   const [, startTransition] = useTransition()
   const titleRef = useRef<HTMLInputElement>(null)
@@ -163,6 +164,15 @@ export function WriterTopBar({
           Classic
         </button>
       </div>
+
+      {/* Voice Profile */}
+      <button
+        onClick={onOpenVoiceProfile}
+        title="Voice Profile"
+        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, border: '1px solid #d4e0cc', background: '#f5f8f2', fontSize: 12, fontWeight: 500, color: '#4F6F3D', cursor: 'pointer' }}
+      >
+        <Mic size={13} /> Voice
+      </button>
 
       {/* Actions */}
       <button
