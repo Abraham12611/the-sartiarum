@@ -400,6 +400,36 @@ export const EditorProvider = forwardRef<NotionEditorHandle, EditorProviderProps
     [editor],
   )
 
+  // --- DEBUG: temporary wheel-event diagnostic (remove after fix) ---
+  useEffect(() => {
+    const wrapper = document.querySelector('.notion-like-editor-wrapper') as HTMLElement | null
+    if (!wrapper) return
+
+    const handler = (e: WheelEvent) => {
+      const target = e.target as HTMLElement
+      console.log('[SCROLL DEBUG] wheel event on:', target.tagName, target.className?.slice(0, 80))
+      console.log('[SCROLL DEBUG] wrapper scrollHeight:', wrapper.scrollHeight, 'clientHeight:', wrapper.clientHeight, 'overflow-y:', getComputedStyle(wrapper).overflowY)
+      console.log('[SCROLL DEBUG] wrapper scrollTop before:', wrapper.scrollTop)
+    }
+    wrapper.addEventListener('wheel', handler, { passive: true })
+
+    // Also log if the wrapper DOESN'T get the event (captured at document level)
+    const docHandler = (e: WheelEvent) => {
+      const target = e.target as HTMLElement
+      if (!wrapper.contains(target)) return
+      if (wrapper.scrollHeight <= wrapper.clientHeight) {
+        console.warn('[SCROLL DEBUG] ⚠️ wrapper has NO scrollable overflow! scrollHeight:', wrapper.scrollHeight, 'clientHeight:', wrapper.clientHeight)
+      }
+    }
+    document.addEventListener('wheel', docHandler, { capture: true, passive: true })
+
+    return () => {
+      wrapper.removeEventListener('wheel', handler)
+      document.removeEventListener('wheel', docHandler, { capture: true } as EventListenerOptions)
+    }
+  }, [])
+  // --- END DEBUG ---
+
   if (!editor) {
     return <LoadingSpinner />
   }

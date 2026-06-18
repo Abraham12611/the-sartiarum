@@ -111,6 +111,7 @@ export function WriterView({ document }: { document: Document }) {
         signal: streamAbortRef.current.signal,
         body: JSON.stringify({
           ...payload,
+          documentId: document.id,
           tone,
           length,
           audience,
@@ -260,7 +261,7 @@ export function WriterView({ document }: { document: Document }) {
             onAiAction={handleComposeAction}
           />
         ) : (
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
             <NotionEditor
               ref={editorRef}
               room={`doc-${document.id}`}

@@ -140,8 +140,8 @@
 | 75 | Wire Brainstorm button â†’ `/api/ai/brainstorm` | in-progress | Route wired and inserts brainstorm bullets at cursor |
 | 76 | Streaming UX â€” inline shimmer + Stop button | in-progress | Streaming preview + Stop wired in Compose panel; final polish/QA pending |
 | 77 | Error + retry affordance for all AI actions | in-progress | Per-action retry wired in Compose panel; validating edge cases |
-| 78 | Writer settings passed to every AI route (tone/length/audience) | todo | Read from document row; injected into system prompt |
-| 79 | `ai_usage` logging confirmed working (check Supabase) | todo | Verify rows appear after a generation |
+| 78 | Writer settings passed to every AI route (tone/length/audience) | done | AI routes now resolve tone/length/audience from owned document row server-side (with safe fallback) |
+| 79 | `ai_usage` logging confirmed working (check Supabase) | done | Verified in Supabase via MCP with live rows across actions/models and prompt versions |
 
 ---
 
@@ -181,6 +181,13 @@
 | 100 | Error states polished â€” no dead ends anywhere | todo | Every AI call has retry; every page has graceful fallback |
 | 101 | QA against Phase 1 acceptance criteria | todo | See `phase-1-core-writing-workspace.md` Â§12 |
 | 102 | Production deploy to Vercel + feature flag in PostHog | todo | Flag: `phase-1-live`; flip to enable for real users |
+
+---
+
+### Bug fixes
+| # | Task | Status | Notes |
+|---|------|--------|-------|
+| 132 | Fix neo (Notion-like) editor scrolling for long content | done | Dual scroll containers + flex constraints prevented overflow; fixed in WriterView.tsx + notion-like-editor.scss |
 
 ---
 

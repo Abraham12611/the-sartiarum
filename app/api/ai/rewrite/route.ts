@@ -2,6 +2,7 @@ import { streamText } from 'ai'
 import { openrouter, MODELS } from '@/lib/ai/openrouter'
 import { composePrompt } from '@/lib/ai/prompts'
 import { getActionMaxOutputTokens, selectModel } from '@/lib/ai/router'
+import { resolveWriterAiSettings } from '@/lib/ai/settings'
 import { createClient } from '@/lib/supabase/server'
 import { assertCanGenerate } from '@/lib/usage/gate'
 import { logAiUsage } from '@/lib/usage/logging'
@@ -16,7 +17,8 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser()
   if (!user) return new Response('Unauthorized', { status: 401 })
 
-  const { selection, tone, length, audience } = await req.json()
+  const body = await req.json()
+  const { selection } = body
   if (!selection?.trim()) return new Response('No text selected', { status: 400 })
 
   const action = 'rewrite' as const
@@ -32,8 +34,15 @@ export async function POST(req: Request) {
     retryCount: 0,
   })
   const modelId = MODELS[modelKey]
-  const { system, promptVersion } = composePrompt(action, { tone, length, audience })
-  const maxOutputTokens = getActionMaxOutputTokens(action, { inputChars, length })
+  const settings = await resolveWriterAiSettings({
+    userId: user.id,
+    documentId: body.documentId,
+    fallbackTone: body.tone,
+    fallbackLength: body.length,
+    fallbackAudience: body.audience,
+  })
+  const { system, promptVersion } = composePrompt(action, settings)
+  const maxOutputTokens = getActionMaxOutputTokens(action, { inputChars, length: settings.length })
 
   const result = streamText({
     model: openrouter(modelId),
