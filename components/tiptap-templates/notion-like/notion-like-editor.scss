@@ -120,7 +120,7 @@ body,
 }
 
 .notion-like-editor-content .tiptap.ProseMirror.notion-like-editor {
-  flex: 1;
+  display: block;
   padding: 3rem 3rem 30vh;
 }
 
