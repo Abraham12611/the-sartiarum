@@ -128,7 +128,7 @@ export default async function Dashboard2Page({
   ])
 
   const activeBoard = activeBoardRows[0]
-  if (!activeBoard) redirect('/app/dashboard2')
+  if (!activeBoard) redirect('/app')
 
   const sectionNameById = new Map(
     allSections.map((section) => [section.id, section.name.toLowerCase()]),

@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CaretDown,
@@ -11,18 +11,26 @@ import {
   Plus,
   ArrowSquareOut,
   Copy,
+  PencilSimple,
+  Swap,
   Trash,
 } from '@phosphor-icons/react'
-import { createDocument, deleteDocument, duplicateDocument } from '@/lib/actions/documents'
+import { createBoard } from '@/lib/actions/boards'
+import { createDocument, deleteDocument, duplicateDocument, moveDocumentToBoard, renameDocument } from '@/lib/actions/documents'
+import { createSpace } from '@/lib/actions/spaces'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DocCard2 } from './DocCard2'
@@ -39,7 +47,7 @@ type Document = {
   updatedAt: Date
   createdAt: Date
 }
-type Board = { id: string; name: string; icon: string | null }
+type Board = { id: string; name: string; icon: string | null; spaceId: string | null }
 
 const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus2 }> = [
   { key: 'idea', status: 'ideas' },
@@ -54,6 +62,13 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
   const [searchQuery, setSearchQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const [createBoardOpen, setCreateBoardOpen] = useState(false)
+  const [newBoardName, setNewBoardName] = useState('')
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false)
+  const [newSpaceName, setNewSpaceName] = useState('')
+  const [isPending, startTransition] = useTransition()
 
   const defaultDraftSectionId = useMemo(
     () =>
@@ -91,6 +106,57 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
     }
   }
 
+  function handleCreateBoard() {
+    setNewBoardName('')
+    setCreateBoardOpen(true)
+  }
+
+  function submitCreateBoard() {
+    const name = newBoardName.trim()
+    if (!name) return
+    startTransition(async () => {
+      const newBoard = await createBoard(board.spaceId ?? '', name)
+      setCreateBoardOpen(false)
+      router.push(`/app?board=${newBoard.id}`)
+    })
+  }
+
+  function handleCreateSpace() {
+    setNewSpaceName('')
+    setCreateSpaceOpen(true)
+  }
+
+  function submitCreateSpace() {
+    const name = newSpaceName.trim()
+    if (!name) return
+    startTransition(async () => {
+      await createSpace(name)
+      setCreateSpaceOpen(false)
+      router.refresh()
+    })
+  }
+
+  async function handleRenameFeatured() {
+    const trimmed = renameValue.trim()
+    if (!trimmed || !featuredDoc || trimmed === featuredDoc.title) {
+      setRenameOpen(false)
+      return
+    }
+    startTransition(async () => {
+      await renameDocument(featuredDoc.id, trimmed)
+      router.refresh()
+      setRenameOpen(false)
+    })
+  }
+
+  async function handleMoveFeatured(targetBoardId: string) {
+    if (!featuredDoc) return
+    startTransition(async () => {
+      await moveDocumentToBoard(featuredDoc.id, targetBoardId)
+      router.refresh()
+    })
+  }
+
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-5 2xl:px-6">
       <header className="mb-3 flex items-center justify-between gap-3">
@@ -111,7 +177,7 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
               {allBoards.map((b) => (
                 <DropdownMenuItem
                   key={b.id}
-                  onSelect={() => router.push(`/app/dashboard2?board=${b.id}`)}
+                  onSelect={() => router.push(`/app?board=${b.id}`)}
                   className={b.id === board.id ? 'font-semibold text-[#2F6E1F]' : ''}
                 >
                   {b.name}
@@ -176,6 +242,12 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
             />
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem onSelect={handleCreateDocument}>New document</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleCreateBoard} disabled={isPending}>
+                New board
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleCreateSpace} disabled={isPending}>
+                New space
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -252,6 +324,15 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
                       Open
                     </DropdownMenuItem>
                     <DropdownMenuItem
+                      onSelect={() => {
+                        setRenameValue(featuredDoc.title || 'Untitled')
+                        setRenameOpen(true)
+                      }}
+                    >
+                      <PencilSimple size={14} className="mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       onSelect={async () => {
                         await duplicateDocument(featuredDoc.id)
                         router.refresh()
@@ -260,6 +341,23 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
                       <Copy size={14} className="mr-2" />
                       Duplicate
                     </DropdownMenuItem>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Swap size={14} className="mr-2" />
+                        Move to board
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="w-48">
+                        {allBoards.map((b) => (
+                          <DropdownMenuItem
+                            key={b.id}
+                            onSelect={() => handleMoveFeatured(b.id)}
+                            disabled={b.id === board.id || isPending}
+                          >
+                            {b.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onSelect={async () => {
@@ -299,6 +397,85 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
           </Card>
         )}
       </div>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename document</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(event) => setRenameValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') handleRenameFeatured()
+            }}
+            className="mt-2"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameFeatured} disabled={isPending}>
+              {isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createBoardOpen} onOpenChange={setCreateBoardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New board</DialogTitle>
+            <DialogDescription>Create a new board in the current space.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newBoardName}
+            onChange={(event) => setNewBoardName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') submitCreateBoard()
+            }}
+            placeholder="Board name"
+            className="mt-2"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateBoardOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitCreateBoard} disabled={isPending}>
+              {isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createSpaceOpen} onOpenChange={setCreateSpaceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New space</DialogTitle>
+            <DialogDescription>Create a new space to organize boards.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newSpaceName}
+            onChange={(event) => setNewSpaceName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') submitCreateSpace()
+            }}
+            placeholder="Space name"
+            className="mt-2"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateSpaceOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitCreateSpace} disabled={isPending}>
+              {isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

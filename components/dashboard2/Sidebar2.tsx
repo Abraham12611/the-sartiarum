@@ -163,7 +163,7 @@ export function DashboardSidebar2({
     startTransition(async () => {
       const board = await createBoard(targetSpaceId, name)
       setCreateBoardOpen(false)
-      router.push(`/app/dashboard2?board=${board.id}`)
+      router.push(`/app?board=${board.id}`)
     })
   }
 
@@ -211,7 +211,7 @@ export function DashboardSidebar2({
             <span className="size-3.5 rounded-full bg-[#FEBB2E]" />
             <span className="size-3.5 rounded-full bg-[#28C840]" />
           </div>
-          <Link href="/app/dashboard2">
+          <Link href="/app">
             <Image
               src="/wordmark-logo.png"
               alt="Sartiarum"
@@ -253,10 +253,10 @@ export function DashboardSidebar2({
               pinnedBoards.slice(0, 5).map((board) => (
                 <Link
                   key={board.id}
-                  href={`/app/dashboard2?board=${board.id}`}
+                  href={`/app?board=${board.id}`}
                   className={[
                     'flex items-center justify-between rounded-lg px-2 py-1.5 text-[14px] font-medium transition-colors',
-                    pathname === '/app/dashboard2' && board.id === resolveTargetBoard()?.id
+                    pathname === '/app' && board.id === resolveTargetBoard()?.id
                       ? 'bg-[#E8F1DC] text-[#35582F]'
                       : 'text-[#1F2422] hover:bg-[#F3F0E9]',
                   ].join(' ')}
@@ -302,10 +302,10 @@ export function DashboardSidebar2({
                       {spaceBoards.map((board) => (
                         <Link
                           key={board.id}
-                          href={`/app/dashboard2?board=${board.id}`}
+                          href={`/app?board=${board.id}`}
                           className={[
                             'flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors',
-                            pathname === '/app/dashboard2' && board.id === resolveTargetBoard()?.id
+                            pathname === '/app' && board.id === resolveTargetBoard()?.id
                               ? 'bg-[#E8F1DC] text-[#35582F]'
                               : 'text-[#1F2422] hover:bg-[#F3F0E9]',
                           ].join(' ')}
@@ -419,7 +419,7 @@ export function DashboardSidebar2({
                 modalBoards.map((board) => (
                   <Link
                     key={board.id}
-                    href={`/app/dashboard2?board=${board.id}`}
+                    href={`/app?board=${board.id}`}
                     onClick={() => setSearchModalOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] font-medium text-[#1F2422] hover:bg-[#F3F0E9]"
                   >
