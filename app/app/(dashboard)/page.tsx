@@ -10,9 +10,9 @@ import {
   sections,
   upcomingTasks,
 } from '@/lib/db/schema'
-import { BoardView } from '@/components/dashboard/BoardView'
-import type { DashboardStatus } from '@/components/dashboard/SectionTabs'
-import { StatsPanel } from '@/components/dashboard/StatsPanel'
+import { BoardView2 } from '@/components/dashboard2/BoardView2'
+import type { DashboardStatus2 } from '@/components/dashboard2/SectionTabs2'
+import { StatsPanel2 } from '@/components/dashboard2/StatsPanel2'
 
 export default async function DashboardPage({
   searchParams,
@@ -51,17 +51,7 @@ export default async function DashboardPage({
 
   if (!activeBoardId) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          color: '#7f887f',
-          fontSize: 15,
-        }}
-      >
+      <div className="flex flex-1 items-center justify-center text-[15px] text-[#7f887f]">
         Setting up your workspace...
       </div>
     )
@@ -161,7 +151,7 @@ export default async function DashboardPage({
 
   return (
     <div className="grid h-full min-h-0 w-full grid-cols-1 xl:grid-cols-[minmax(0,1fr)_272px] xl:gap-x-5 xl:px-3">
-      <BoardView
+      <BoardView2
         board={activeBoard}
         allBoards={allBoards}
         sections={boardSections}
@@ -172,7 +162,7 @@ export default async function DashboardPage({
           ),
         }))}
       />
-      <StatsPanel
+      <StatsPanel2
         documentsCount={normalizedAllDocuments.length}
         notesCount={notesCount}
         sourcesLinkedCount={sourcesLinkedCount}
@@ -190,7 +180,7 @@ export default async function DashboardPage({
   )
 }
 
-function inferStatusFromSectionName(sectionName: string): Exclude<DashboardStatus, 'all'> {
+function inferStatusFromSectionName(sectionName: string): Exclude<DashboardStatus2, 'all'> {
   if (sectionName.includes('idea')) return 'ideas'
   if (sectionName.includes('review')) return 'in_review'
   if (sectionName.includes('final')) return 'final'

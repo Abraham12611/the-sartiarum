@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CaretDown,
@@ -9,25 +9,32 @@ import {
   FadersHorizontal,
   MagnifyingGlass,
   Plus,
-  PencilSimple,
-  Trash,
   ArrowSquareOut,
   Copy,
+  PencilSimple,
+  Swap,
+  Trash,
 } from '@phosphor-icons/react'
-import { createDocument, deleteDocument, duplicateDocument } from '@/lib/actions/documents'
+import { createBoard } from '@/lib/actions/boards'
+import { createDocument, deleteDocument, duplicateDocument, moveDocumentToBoard, renameDocument } from '@/lib/actions/documents'
+import { createSpace } from '@/lib/actions/spaces'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { DocCard } from './DocCard'
-import { DashboardStatus, SectionTabs } from './SectionTabs'
+import { DocCard2 } from './DocCard2'
+import { DashboardStatus2, SectionTabs2 } from './SectionTabs2'
 
 type Section = { id: string; name: string; sortOrder: number }
 type Document = {
@@ -36,32 +43,32 @@ type Document = {
   content: unknown
   wordCount: number
   sectionId: string | null
-  status: DashboardStatus
+  status: DashboardStatus2
   updatedAt: Date
   createdAt: Date
 }
-type Board = { id: string; name: string; icon: string | null; spaceId?: string | null }
+type Board = { id: string; name: string; icon: string | null; spaceId: string | null }
 
-interface BoardViewProps {
-  board: Board
-  allBoards: Board[]
-  sections: Section[]
-  documents: Document[]
-}
-
-const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus }> = [
+const STATUS_BY_SECTION_NAME: Array<{ key: string; status: DashboardStatus2 }> = [
   { key: 'idea', status: 'ideas' },
   { key: 'review', status: 'in_review' },
   { key: 'final', status: 'final' },
   { key: 'draft', status: 'draft' },
 ]
 
-export function BoardView({ board, allBoards, sections, documents }: BoardViewProps) {
+export function BoardView2({ board, allBoards, sections, documents }: BoardView2Props) {
   const router = useRouter()
-  const [activeStatus, setActiveStatus] = useState<DashboardStatus>('all')
+  const [activeStatus, setActiveStatus] = useState<DashboardStatus2>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const [createBoardOpen, setCreateBoardOpen] = useState(false)
+  const [newBoardName, setNewBoardName] = useState('')
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false)
+  const [newSpaceName, setNewSpaceName] = useState('')
+  const [isPending, startTransition] = useTransition()
 
   const defaultDraftSectionId = useMemo(
     () =>
@@ -99,11 +106,61 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
     }
   }
 
+  function handleCreateBoard() {
+    setNewBoardName('')
+    setCreateBoardOpen(true)
+  }
+
+  function submitCreateBoard() {
+    const name = newBoardName.trim()
+    if (!name) return
+    startTransition(async () => {
+      const newBoard = await createBoard(board.spaceId ?? '', name)
+      setCreateBoardOpen(false)
+      router.push(`/app?board=${newBoard.id}`)
+    })
+  }
+
+  function handleCreateSpace() {
+    setNewSpaceName('')
+    setCreateSpaceOpen(true)
+  }
+
+  function submitCreateSpace() {
+    const name = newSpaceName.trim()
+    if (!name) return
+    startTransition(async () => {
+      await createSpace(name)
+      setCreateSpaceOpen(false)
+      router.refresh()
+    })
+  }
+
+  async function handleRenameFeatured() {
+    const trimmed = renameValue.trim()
+    if (!trimmed || !featuredDoc || trimmed === featuredDoc.title) {
+      setRenameOpen(false)
+      return
+    }
+    startTransition(async () => {
+      await renameDocument(featuredDoc.id, trimmed)
+      router.refresh()
+      setRenameOpen(false)
+    })
+  }
+
+  async function handleMoveFeatured(targetBoardId: string) {
+    if (!featuredDoc) return
+    startTransition(async () => {
+      await moveDocumentToBoard(featuredDoc.id, targetBoardId)
+      router.refresh()
+    })
+  }
+
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-3 xl:px-5 2xl:px-6">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {/* Board switcher dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -140,7 +197,6 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
               className="h-9 rounded-xl border-[#E5DED4] bg-white/80 pl-9 text-sm"
             />
           </div>
-          {/* Filter dropdown */}
           <DropdownMenu open={filterOpen} onOpenChange={setFilterOpen}>
             <DropdownMenuTrigger
               render={
@@ -157,10 +213,13 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
               }
             />
             <DropdownMenuContent align="end" className="w-40">
-              {(['all', 'ideas', 'draft', 'in_review', 'final'] as DashboardStatus[]).map((s) => (
+              {(['all', 'ideas', 'draft', 'in_review', 'final'] as DashboardStatus2[]).map((s) => (
                 <DropdownMenuItem
                   key={s}
-                  onSelect={() => { setActiveStatus(s); setFilterOpen(false) }}
+                  onSelect={() => {
+                    setActiveStatus(s)
+                    setFilterOpen(false)
+                  }}
                   className={activeStatus === s ? 'font-semibold text-[#2F6E1F]' : ''}
                 >
                   {s === 'all' ? 'All statuses' : statusLabel(s)}
@@ -168,7 +227,6 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          {/* +New dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -183,8 +241,12 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
               }
             />
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onSelect={handleCreateDocument}>
-                New document
+              <DropdownMenuItem onClick={handleCreateDocument}>New document</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCreateBoard} disabled={isPending}>
+                New board
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCreateSpace} disabled={isPending}>
+                New space
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -200,13 +262,13 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
         </p>
       </div>
 
-      <SectionTabs
+      <SectionTabs2
         activeStatus={activeStatus}
         onSelect={setActiveStatus}
         totalCount={documents.length}
       />
 
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-hide">
         {featuredDoc ? (
           <>
             <Card
@@ -243,7 +305,6 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
                   <span>{timeAgo(featuredDoc.updatedAt)}</span>
                 </div>
               </div>
-              {/* Featured card menu */}
               <div className="absolute right-3 top-3 z-20" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -258,22 +319,48 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
                     }
                   />
                   <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onSelect={() => router.push(`/app/doc/${featuredDoc.id}`)}>
+                    <DropdownMenuItem onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}>
                       <ArrowSquareOut size={14} className="mr-2" />
                       Open
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={async () => {
-                        const copy = await duplicateDocument(featuredDoc.id)
+                      onClick={() => {
+                        setRenameValue(featuredDoc.title || 'Untitled')
+                        setRenameOpen(true)
+                      }}
+                    >
+                      <PencilSimple size={14} className="mr-2" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await duplicateDocument(featuredDoc.id)
                         router.refresh()
                       }}
                     >
                       <Copy size={14} className="mr-2" />
                       Duplicate
                     </DropdownMenuItem>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Swap size={14} className="mr-2" />
+                        Move to board
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="w-48">
+                        {allBoards.map((b) => (
+                          <DropdownMenuItem
+                            key={b.id}
+                            onClick={() => handleMoveFeatured(b.id)}
+                            disabled={b.id === board.id || isPending}
+                          >
+                            {b.name}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onSelect={async () => {
+                      onClick={async () => {
                         if (!confirm(`Delete "${featuredDoc.title || 'Untitled'}"? This cannot be undone.`)) return
                         await deleteDocument(featuredDoc.id)
                         router.refresh()
@@ -291,7 +378,7 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
             {gridDocs.length > 0 ? (
               <div className="mt-3 grid grid-cols-1 gap-2.5 xl:grid-cols-3">
                 {gridDocs.map((doc) => (
-                  <DocCard key={doc.id} doc={doc} allBoards={allBoards} />
+                  <DocCard2 key={doc.id} doc={doc} allBoards={allBoards} />
                 ))}
               </div>
             ) : null}
@@ -310,8 +397,94 @@ export function BoardView({ board, allBoards, sections, documents }: BoardViewPr
           </Card>
         )}
       </div>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename document</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(event) => setRenameValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') handleRenameFeatured()
+            }}
+            className="mt-2"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameFeatured} disabled={isPending}>
+              {isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createBoardOpen} onOpenChange={setCreateBoardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New board</DialogTitle>
+            <DialogDescription>Create a new board in the current space.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newBoardName}
+            onChange={(event) => setNewBoardName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') submitCreateBoard()
+            }}
+            placeholder="Board name"
+            className="mt-2"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateBoardOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitCreateBoard} disabled={isPending}>
+              {isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createSpaceOpen} onOpenChange={setCreateSpaceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New space</DialogTitle>
+            <DialogDescription>Create a new space to organize boards.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={newSpaceName}
+            onChange={(event) => setNewSpaceName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') submitCreateSpace()
+            }}
+            placeholder="Space name"
+            className="mt-2"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateSpaceOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={submitCreateSpace} disabled={isPending}>
+              {isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
+}
+
+interface BoardView2Props {
+  board: Board
+  allBoards: Board[]
+  sections: Section[]
+  documents: Document[]
 }
 
 function extractSnippet(content: unknown, maxLen: number): string {
@@ -346,14 +519,14 @@ function timeAgo(value: Date): string {
   return `Edited ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
-function inferStatusFromSectionId(sectionId: string | null, sections: Section[]): DashboardStatus {
+function inferStatusFromSectionId(sectionId: string | null, sections: Section[]): DashboardStatus2 {
   if (!sectionId) return 'draft'
   const sectionName = sections.find((section) => section.id === sectionId)?.name.toLowerCase() ?? ''
   const matched = STATUS_BY_SECTION_NAME.find((item) => sectionName.includes(item.key))
   return matched?.status ?? 'draft'
 }
 
-function statusLabel(status: DashboardStatus) {
+function statusLabel(status: DashboardStatus2) {
   if (status === 'in_review') return 'In Review'
   if (status === 'ideas') return 'Ideas'
   if (status === 'final') return 'Final'

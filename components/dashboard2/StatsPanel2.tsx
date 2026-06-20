@@ -28,7 +28,7 @@ type UpcomingTask = {
   scheduledFor: Date
 }
 
-interface StatsPanelProps {
+interface StatsPanel2Props {
   documentsCount: number
   notesCount: number
   sourcesLinkedCount: number
@@ -39,7 +39,7 @@ interface StatsPanelProps {
   defaultSectionId?: string
 }
 
-export function StatsPanel({
+export function StatsPanel2({
   documentsCount,
   notesCount,
   sourcesLinkedCount,
@@ -48,7 +48,7 @@ export function StatsPanel({
   upcomingTasks,
   boardId,
   defaultSectionId,
-}: StatsPanelProps) {
+}: StatsPanel2Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -60,7 +60,7 @@ export function StatsPanel({
   }
 
   return (
-    <aside className="hidden h-full w-[272px] shrink-0 xl:flex xl:flex-col xl:gap-2.5 xl:px-2.5 xl:pb-2.5 xl:pt-[74px]">
+    <aside className="hidden h-full w-[272px] shrink-0 xl:flex xl:flex-col xl:gap-2 xl:px-2.5 xl:pb-2 xl:pt-3 overflow-y-auto">
       <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-4 pt-3 pb-1.5">
           <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
@@ -72,8 +72,17 @@ export function StatsPanel({
           <div className="grid grid-cols-2 gap-x-3 gap-y-3">
             <AtGlanceItem label="Documents" value={documentsCount} icon={<FileDoc size={15} />} />
             <AtGlanceItem label="Notes" value={notesCount} icon={<NotePencil size={15} />} />
-            <AtGlanceItem label="Sources linked" value={sourcesLinkedCount} icon={<LinkSimpleHorizontal size={15} />} />
-            <AtGlanceItem label="In review" value={inReviewCount} icon={<ClockCounterClockwise size={15} />} accent="blue" />
+            <AtGlanceItem
+              label="Sources linked"
+              value={sourcesLinkedCount}
+              icon={<LinkSimpleHorizontal size={15} />}
+            />
+            <AtGlanceItem
+              label="In review"
+              value={inReviewCount}
+              icon={<ClockCounterClockwise size={15} />}
+              accent="blue"
+            />
           </div>
         </CardContent>
       </Card>
@@ -96,7 +105,9 @@ export function StatsPanel({
               >
                 <span className="inline-flex min-w-0 items-center gap-2">
                   <FileDoc size={14} className="shrink-0 text-[#616A62]" />
-                  <span className="truncate text-[12px] font-medium text-[#202523]">{doc.title || 'Untitled'}</span>
+                  <span className="truncate text-[12px] font-medium text-[#202523]">
+                    {doc.title || 'Untitled'}
+                  </span>
                 </span>
                 <span className="shrink-0 text-[10.5px] text-[#737A73]">{timeAgo(doc.updatedAt)}</span>
               </Link>
