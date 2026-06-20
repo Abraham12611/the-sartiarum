@@ -143,12 +143,12 @@ export function DocCard2({ doc, allBoards }: { doc: Document; allBoards: Board[]
                 }
               />
               <DropdownMenuContent align="end" className="w-36">
-                <DropdownMenuItem onSelect={openDocument}>
+                <DropdownMenuItem onClick={openDocument}>
                   <FolderOpen size={14} />
                   Open
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={() => {
+                  onClick={() => {
                     setRenameValue(doc.title || 'Untitled')
                     setRenameOpen(true)
                   }}
@@ -166,7 +166,7 @@ export function DocCard2({ doc, allBoards }: { doc: Document; allBoards: Board[]
                     {allBoards.map((board) => (
                       <DropdownMenuItem
                         key={board.id}
-                        onSelect={() => handleMoveToBoard(board.id)}
+                        onClick={() => handleMoveToBoard(board.id)}
                         disabled={busy || deleting}
                       >
                         {board.name}
@@ -176,7 +176,7 @@ export function DocCard2({ doc, allBoards }: { doc: Document; allBoards: Board[]
                 </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={handleDelete}
+                  onClick={handleDelete}
                   className="text-[#b42318] focus:text-[#b42318]"
                   disabled={busy || deleting}
                 >

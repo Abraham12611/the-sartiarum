@@ -241,11 +241,11 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
               }
             />
             <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onSelect={handleCreateDocument}>New document</DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleCreateBoard} disabled={isPending}>
+              <DropdownMenuItem onClick={handleCreateDocument}>New document</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCreateBoard} disabled={isPending}>
                 New board
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleCreateSpace} disabled={isPending}>
+              <DropdownMenuItem onClick={handleCreateSpace} disabled={isPending}>
                 New space
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -319,12 +319,12 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
                     }
                   />
                   <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onSelect={() => router.push(`/app/doc/${featuredDoc.id}`)}>
+                    <DropdownMenuItem onClick={() => router.push(`/app/doc/${featuredDoc.id}`)}>
                       <ArrowSquareOut size={14} className="mr-2" />
                       Open
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={() => {
+                      onClick={() => {
                         setRenameValue(featuredDoc.title || 'Untitled')
                         setRenameOpen(true)
                       }}
@@ -333,7 +333,7 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
                       Rename
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={async () => {
+                      onClick={async () => {
                         await duplicateDocument(featuredDoc.id)
                         router.refresh()
                       }}
@@ -350,7 +350,7 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
                         {allBoards.map((b) => (
                           <DropdownMenuItem
                             key={b.id}
-                            onSelect={() => handleMoveFeatured(b.id)}
+                            onClick={() => handleMoveFeatured(b.id)}
                             disabled={b.id === board.id || isPending}
                           >
                             {b.name}
@@ -360,7 +360,7 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
                     </DropdownMenuSub>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
-                      onSelect={async () => {
+                      onClick={async () => {
                         if (!confirm(`Delete "${featuredDoc.title || 'Untitled'}"? This cannot be undone.`)) return
                         await deleteDocument(featuredDoc.id)
                         router.refresh()
