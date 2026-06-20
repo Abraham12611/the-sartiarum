@@ -196,7 +196,7 @@ export function BoardView2({ board, allBoards, sections, documents }: BoardView2
         totalCount={documents.length}
       />
 
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-hide">
         {featuredDoc ? (
           <>
             <Card
