@@ -65,7 +65,8 @@ export function WriterView({ document }: { document: Document }) {
     }
   }, [])
 
-  function handleEditorModeChange(mode: 'notion' | 'classic') {
+  async function handleEditorModeChange(mode: 'notion' | 'classic') {
+    await handleSave()
     setEditorMode(mode)
     window.localStorage.setItem('sartiarum-editor-mode', mode)
   }

@@ -215,6 +215,7 @@ export const EditorProvider = forwardRef<NotionEditorHandle, EditorProviderProps
   const { setTocContent } = useToc()
   const lastSelectionTextRef = useRef("")
   const lastSelectionRangeRef = useRef<{ from: number; to: number } | null>(null)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -347,6 +348,8 @@ export const EditorProvider = forwardRef<NotionEditorHandle, EditorProviderProps
       const plain = current.getText().trim()
       const words = plain ? plain.split(/\s+/).length : 0
       onContentUpdate(json, words)
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => onSaveNow?.(), 10000)
     },
     onSelectionUpdate: ({ editor: current }) => {
       const { from, to } = current.state.selection
@@ -355,9 +358,16 @@ export const EditorProvider = forwardRef<NotionEditorHandle, EditorProviderProps
       lastSelectionTextRef.current = current.state.doc.textBetween(from, to, " ")
     },
     onBlur: () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
       onSaveNow?.()
     },
   })
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    }
+  }, [])
 
   useImperativeHandle(
     ref,
