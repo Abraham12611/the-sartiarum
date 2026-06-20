@@ -60,7 +60,7 @@ export function StatsPanel2({
   }
 
   return (
-    <aside className="hidden h-full w-[272px] shrink-0 xl:flex xl:flex-col xl:gap-2.5 xl:px-2.5 xl:pb-2.5 xl:pt-[74px]">
+    <aside className="hidden h-full w-[272px] shrink-0 xl:flex xl:flex-col xl:gap-2 xl:px-2.5 xl:pb-2 xl:pt-3 overflow-y-auto">
       <Card className="rounded-xl border-[#E5DED4] bg-white/85 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-4 pt-3 pb-1.5">
           <CardTitle className="text-[17px] font-semibold leading-none tracking-tight text-[#171B19]">
