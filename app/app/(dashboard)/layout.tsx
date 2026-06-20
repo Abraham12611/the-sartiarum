@@ -1,7 +1,6 @@
 import { and, count as dbCount, eq, gte } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
-import { DashboardSidebar } from '@/components/sidebar/Sidebar'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { DashboardSidebar2 } from '@/components/dashboard2/Sidebar2'
 import { db } from '@/lib/db'
 import { aiUsage, boards, profiles, spaces, subscriptions } from '@/lib/db/schema'
 import { createClient } from '@/lib/supabase/server'
@@ -41,17 +40,17 @@ export default async function DashboardLayout({
     : null
 
   return (
-    <SidebarProvider defaultOpen>
-      <DashboardSidebar
+    <div className="flex h-screen w-full overflow-hidden bg-[#FBF8F2]">
+      <DashboardSidebar2
         spaces={spacesData}
         boards={boardsData}
         profile={profileData[0] ?? null}
         subscription={subscription}
         aiUsageCount={safeAiUsageCount}
       />
-      <SidebarInset className="h-screen overflow-hidden bg-[#FBF8F2]">
+      <main className="flex h-screen flex-1 flex-col overflow-hidden">
         {children}
-      </SidebarInset>
-    </SidebarProvider>
+      </main>
+    </div>
   )
 }
